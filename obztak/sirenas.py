@@ -43,7 +43,7 @@ FWHM_O4INIT = 1
 FWHM_O4FIN = 1 
 
 
-class DelveSurvey(Survey):
+class SirenasSurvey(Survey):
     """ Survey sublcass for SIRENAS. """
 
     """ Instantiate the relevant nights and half nights"""
@@ -218,13 +218,13 @@ class DelveSurvey(Survey):
 
         return fields
 
-    def create_wide_fields(self, data, plot=False):
-        """ Create the wide field observations """
-        logging.info("Creating WIDE fields...")
-        BANDS = ['g','i']
-        EXPTIME = [90,90]
-        TILINGS = [4,4]
-        TEFF_MIN = TEFF_MIN_WIDE
+    def create_bear_fields(self, data, plot=False):
+        """ Create the bear field observations """
+        logging.info("Creating BEAR fields...")
+        BANDS = ['g','i','z','r','u']
+        EXPTIME = [90,90,90,90,90]
+        TILINGS = [4,4,4,4,4]
+        TEFF_MIN = TEFF_MIN_BEAR
 
         nhexes = len(np.unique(data['TILEID']))
         nbands = len(BANDS)
@@ -237,7 +237,7 @@ class DelveSurvey(Survey):
         logging.info("  Tilings: %s"%TILINGS)
 
         fields = FieldArray(nfields)
-        fields['PROGRAM'] = PROGRAM+'-wide'
+        fields['PROGRAM'] = PROGRAM+'-bear'
         fields['HEX'] = np.repeat(data['TILEID'],nbands)
         fields['TILING'] = np.repeat(data['PASS'],nbands)
         fields['RA'] = np.repeat(data['RA'],nbands)
@@ -247,13 +247,13 @@ class DelveSurvey(Survey):
         fields['EXPTIME'] = np.tile(EXPTIME,len(data))
         fields['PRIORITY'] = fields['TILING']
 
-        sel = self.footprintWIDE(fields['RA'],fields['DEC'])
+        sel = self.footprintBEAR(fields['RA'],fields['DEC'])
         sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC']))
         sel &= (~self.footprintDES(fields['RA'],fields['DEC']))
         #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
-        sel &= (~self.footprintMC(fields['RA'],fields['DEC']))
-        # Avoid DEEP fields? No.
-        #sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
+        #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
+        # Avoid DEEP fields? yes.
+        sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
 
         fields = fields[sel]
 
@@ -262,11 +262,11 @@ class DelveSurvey(Survey):
         teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
         fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
 
-        if plot: self.plot_depth(fields,depth,'delve-wide-%s-gt%i.png')
+        if plot: self.plot_depth(fields,depth,'sirenas-bear-%s-gt%i.png')
 
         logging.info("Number of target fields: %d"%len(fields))
 
-        outfile = 'delve-wide-fields.fits.fz'
+        outfile = 'sirenas-bear-fields.fits.fz'
         logging.info("Writing %s..."%outfile)
         fields.write(outfile,clobber=True)
 
