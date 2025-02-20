@@ -31,7 +31,7 @@ def main():
 
     scheduled = FieldArray()
     for i,(start,end) in enumerate(windows):
-        print start,end
+        print(start, end)
 
         if args.nightly: 
             scheduler.schedule_nite(start,plot=False)
@@ -42,10 +42,10 @@ def main():
         scheduled = scheduled + scheduler.scheduled_fields
 
         if not args.nonstop:
-            if (raw_input(' ...continue ([y]/n)').lower()=='n'): break
+            if (input(' ...continue ([y]/n)').lower()=='n'): break
 
     if not args.nonstop:
-        raw_input(' ...finish...')
+        input(' ...finish...')
 
     if args.outfile: 
         scheduled.write(args.outfile)

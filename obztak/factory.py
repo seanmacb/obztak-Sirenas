@@ -72,7 +72,7 @@ def factory(cls, modules=None, **kwargs):
     """
     # Format modules into a list
     if modules is None: modules = [__name__]
-    elif isstring(modules): modules = [modules]
+    elif isinstance(modules, str): modules = [modules]
 
     # Import the requested modules
     for module in modules:
