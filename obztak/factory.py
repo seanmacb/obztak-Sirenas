@@ -22,6 +22,7 @@ SURVEYS = odict([
     ('maglites2','Maglites2Survey'),
     ('delve','DelveSurvey'),
     ('magic','MagicSurvey'),
+    ('sirenas','SirenasSurvey'),
 ])
 
 SCHEDULERS = odict([
@@ -32,6 +33,7 @@ SCHEDULERS = odict([
     ('maglites2','Maglites2Scheduler'),
     ('delve','DelveScheduler'),
     ('magic','MagicScheduler'),
+    ('sirenas','SirenasScheduler')
 ])
 
 FIELDS = odict([
@@ -41,6 +43,7 @@ FIELDS = odict([
     ('bliss','BlissFieldArray'),
     ('maglites2','Maglites2FieldArray'),
     ('magic','MagicFieldArray'),
+    ('sirenas','SirenasFieldArray')
 ])
 
 TACTICIANS = odict([
@@ -59,6 +62,7 @@ TACTICIANS = odict([
     ('maglites2','Maglites2Tactician'),
     ('delve','DelveTactician'),
     ('magic','MagicTactician'),
+    ('sirenas','SirenasTactician')
 ])
 
 def factory(cls, modules=None, **kwargs):
