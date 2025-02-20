@@ -35,12 +35,12 @@ DONE = -1
 
 # TODO: Need to have a discussion about what kinds of mini-surveys we would want, and what the t_eff and FWHM limits should be
 TEFF_MIN_BEAR = pd.DataFrame(dict(FILTER=BANDS[0:5],TEFF=[0.4,0.4,0.4,0.4,0.4])) # ugriz, teff threshold at 0.4
-TEFF_MIN_O4B = pd.DataFrame(dict(FILTER=BANDS[0:5],TEFF=[0.4,0.4,0.4,0.4,0.4])) # ugriz, teff threshold at 0.4
-TEFF_MIN_O4C = pd.DataFrame(dict(FILTER=BANDS[-5:],TEFF=[0.4,0.4,0.4,0.4,0.4])) # medium bands, teff threshold at 0.4
+TEFF_MIN_O4 = pd.DataFrame(dict(FILTER=BANDS[0:5],TEFF=[0.4,0.4,0.4,0.4,0.4])) # ugriz, teff threshold at 0.4
+TEFF_MIN_O5 = pd.DataFrame(dict(FILTER=BANDS[-5:],TEFF=[0.4,0.4,0.4,0.4,0.4])) # medium bands, teff threshold at 0.4
 
 FWHM_BEAR = 1 # Arcsec
-FWHM_O4INIT = 1
-FWHM_O4FIN = 1 
+FWHM_O4 = 1
+FWHM_O5 = 1 
 
 
 class SirenasSurvey(Survey):
@@ -200,21 +200,21 @@ class SirenasSurvey(Survey):
         done_bear = bear & covered_bear
         print('Found %i BEAR exposures newly done.'%(done_bear & ~done).sum())
 
-        O4b = np.char.endswith(fields['PROGRAM'],'-O4b')
-        teff_min_O4b = pd.DataFrame(fields).merge(TEFF_MIN_O4B,on='FILTER',how='left').to_records()['TEFF']
-        covered_O4b = depth > teff_min_O4b*fields['TILING']*fields['EXPTIME']
-        done_O4b = O4b & covered_O4b
-        print('Found %i O4b exposures newly done.'%(done_O4b & ~done).sum())
+        O4 = np.char.endswith(fields['PROGRAM'],'-O4')
+        teff_min_O4 = pd.DataFrame(fields).merge(TEFF_MIN_O4,on='FILTER',how='left').to_records()['TEFF']
+        covered_O4 = depth > teff_min_O4*fields['TILING']*fields['EXPTIME']
+        done_O4 = O4 & covered_O4
+        print('Found %i O4 exposures newly done.'%(done_O4 & ~done).sum())
 
-        O4c = np.char.endswith(fields['PROGRAM'],'-O4c')
-        teff_min_O4c = pd.DataFrame(fields).merge(TEFF_MIN_O4C,on='FILTER',how='left').to_records()['TEFF']
-        covered_O4c = depth > teff_min_O4c*fields['TILING']*fields['EXPTIME']
-        done_O4c = O4c & covered_O4c
-        print('Found %i O4c exposures newly done.'%(done_O4c & ~done).sum())
+        O5 = np.char.endswith(fields['PROGRAM'],'-O5')
+        teff_min_O5 = pd.DataFrame(fields).merge(TEFF_MIN_O5,on='FILTER',how='left').to_records()['TEFF']
+        covered_O5 = depth > teff_min_O5*fields['TILING']*fields['EXPTIME']
+        done_O5 = O5 & covered_O5
+        print('Found %i O5 exposures newly done.'%(done_O5 & ~done).sum())
 
         fields['PRIORITY'][done_bear & ~done] = DONE
-        fields['PRIORITY'][done_O4b & ~done] = DONE
-        fields['PRIORITY'][done_O4c & ~done] = DONE
+        fields['PRIORITY'][done_O4 & ~done] = DONE
+        fields['PRIORITY'][done_O5 & ~done] = DONE
 
         return fields
 
@@ -247,9 +247,9 @@ class SirenasSurvey(Survey):
         fields['EXPTIME'] = np.tile(EXPTIME,len(data))
         fields['PRIORITY'] = fields['TILING']
 
-        sel = self.footprintBEAR(fields['RA'],fields['DEC'])
-        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC']))
-        sel &= (~self.footprintDES(fields['RA'],fields['DEC']))
+        sel = self.footprintBEAR(fields['RA'],fields['DEC']) # Bear footprint?
+        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
+        sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
         #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
         #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
         # Avoid DEEP fields? yes.
@@ -272,235 +272,14 @@ class SirenasSurvey(Survey):
 
         return fields
 
+""" TODO: Decide fields for bear survey """
 
-    def create_mc_fields(self, data, plot=False):
-        """ Select fields around the LMC """
-        logging.info("Creating MC fields...")
-        BANDS = ['g','r','i']
-        EXPTIME = [267,267,333]
-        TILINGS = [4, 4, 4]
-        TEFF_MIN = TEFF_MIN_MC
-
-        nhexes = len(np.unique(data['TILEID']))
-        nbands = len(BANDS)
-
-        nfields = len(data)*nbands
-
-        logging.info("  Number of hexes: %d"%nhexes)
-        logging.info("  Filters: %s"%BANDS)
-        logging.info("  Exposure time: %s"%EXPTIME)
-        logging.info("  Tilings: %s"%TILINGS)
-
-        fields = FieldArray(nfields)
-        fields['PROGRAM'] = PROGRAM+'-mc'
-        fields['HEX'] = np.repeat(data['TILEID'],nbands)
-        fields['TILING'] = np.repeat(data['PASS'],nbands)
-        fields['RA'] = np.repeat(data['RA'],nbands)
-        fields['DEC'] = np.repeat(data['DEC'],nbands)
-
-        fields['FILTER'] = np.tile(BANDS,len(data))
-        fields['EXPTIME'] = np.tile(EXPTIME,len(data))
-        fields['PRIORITY'] = fields['TILING']
-
-        sel = self.footprintMC(fields['RA'],fields['DEC'])
-        sel &= (~self.footprintDES(fields['RA'],fields['DEC']))
-        #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
-        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC']))
-
-        fields = fields[sel]
-
-        # Covered fields
-        frac, depth = self.covered(fields, percent=90)
-        teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
-        fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
-
-        # Avoid MagLiteS-II for now
-        #fields['PRIORITY'][self.footprintMaglites2(fields['RA'],fields['DEC'])] = DONE
-
-        if plot: self.plot_depth(fields,depth,'delve-mc-%s-gt%i.png',proj='maglites')
-
-        logging.info("Number of target fields: %d"%len(fields))
-
-        outfile = 'delve-mc-fields.fits.fz'
-        logging.info("Writing %s..."%outfile)
-        fields.write(outfile,clobber=True)
-
-        return fields
-
-    def create_deep_fields(self, data, plot=False):
-        logging.info("Creating DEEP fields...")
-        BANDS = ['g','i']
-        EXPTIME = [300,300]
-        TILINGS = [15,10]
-
-        dirname = '/Users/kadrlica/delve/observing/data'
-        hexbase = 100000 # hex offset
-        # target number and filename
-        basenames = odict([
-            ('SextansB', (000, 'sextansB_fields_v3.txt')),
-            ('IC5152',   (100, 'ic5152_fields_v3.txt')),
-            ('NGC300',   (200, 'ngc300_fields_v3.txt')),
-            ('NGC55',    (300, 'ngc55_fields_v3.txt')),
-        ])
-
-        fields = FieldArray()
-        for name,(num,basename) in basenames.items():
-            filename = os.path.join(dirname,basename)
-            target = np.genfromtxt(filename,names=True,dtype=None)
-            f = FieldArray(len(target))
-
-            filters = np.tile(BANDS,len(f))
-            exptimes = np.tile(EXPTIME,len(f))
-
-            f['RA']     = target['ra']
-            f['DEC']    = target['dec']
-            f['HEX']    = hexbase + num + target['field']
-            f['TILING'] = target['tiling']
-            #f['PRIORITY'] = num + target['priority']
-            f['PRIORITY'] = target['priority']
-            f['PROGRAM'] = PROGRAM+'-deep'
-
-            # Group the fields by hex/tiling
-            f = np.repeat(f,len(BANDS))
-            f['FILTER'] = filters
-            f['EXPTIME'] = exptimes
-
-            for (b,t) in zip(BANDS, TILINGS):
-                f = f[~((f['FILTER'] == b) & (f['TILING'] > t))]
-
-            # These fields are done
-            if num in [000,300]:
-                f['PRIORITY'] *= DONE
-
-            ## Downweight NGC300 relative to IC5152
-            #if num in [200]:
-            #    f['PRIORITY'] += 20
-
-            ## Remove IC5152
-            #if num in [100]:
-            #    f['PRIORITY'] *= -1
-
-            # Remove last 3 exposures due to DES coverage
-            if num in [100,200,300]:
-                f['PRIORITY'][(f['TILING'] > 12) & (f['FILTER']=='g')] = -99
-                f['PRIORITY'][(f['TILING'] >  7) & (f['FILTER']=='i')] = -99
-
-            fields = fields + f
-
-        # Remove periphery of Sextans B
-        exclude = [100001, 100002, 100003, 100004, 100007, 100008, 100012,
-                   100013, 100016, 100017, 100018, 100019]
-
-        fields = fields[~np.in1d(fields['HEX'],exclude)]
-
-        nhexes = len(np.unique(fields['HEX']))
-        logging.info("  Number of hexes: %d"%nhexes)
-        logging.info("  Filters: %s"%BANDS)
-        logging.info("  Exposure time: %s"%EXPTIME)
-
-        if plot: self.plot_depth(fields,depth,'delve-deep-%s-gt%i.png')
-
-        logging.info("Number of target fields: %d"%len(fields))
-
-        outfile = 'delve-deep-fields.fits.fz'
-        logging.info("Writing %s..."%outfile)
-        fields.write(outfile,clobber=True)
-
-        return fields
-
-    def create_extra_fields(self, data, plot=False):
-        """ Create the extra wide field observations """
-        logging.info("Creating EXTRA fields...")
-        BANDS = ['g','r','i','z']
-        EXPTIME = [90,90,90,90]
-        TILINGS = [4,4,4,4]
-        TEFF_MIN = TEFF_MIN_EXTRA
-
-        nhexes = len(np.unique(data['TILEID']))
-        nbands = len(BANDS)
-
-        nfields = len(data)*nbands
-
-        logging.info("  Number of hexes: %d"%nhexes)
-        logging.info("  Filters: %s"%BANDS)
-        logging.info("  Exposure time: %s"%EXPTIME)
-        logging.info("  Tilings: %s"%TILINGS)
-
-        fields = FieldArray(nfields)
-        fields['PROGRAM'] = PROGRAM+'-extra'
-        fields['HEX'] = np.repeat(data['TILEID'],nbands)
-        fields['TILING'] = np.repeat(data['PASS'],nbands)
-        fields['RA'] = np.repeat(data['RA'],nbands)
-        fields['DEC'] = np.repeat(data['DEC'],nbands)
-
-        fields['FILTER'] = np.tile(BANDS,len(data))
-        fields['EXPTIME'] = np.tile(EXPTIME,len(data))
-        fields['PRIORITY'] = fields['TILING']
-
-        #sel = self.footprintEXTRA(fields['RA'],fields['DEC'])
-        #sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC']))
-        #sel &= (~self.footprintDES(fields['RA'],fields['DEC']))
-        #fields = fields[sel]
-
-        sel = self.footprintEXTRA(fields['RA'],fields['DEC'])
-        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC']))
-        sel &= (~self.footprintDES(fields['RA'],fields['DEC']))
-        #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
-        #sel &= (~self.footprintMC(fields['RA'],fields['DEC']))
-        fields = fields[sel]
-
-        # Covered fields
-        frac, depth = self.covered(fields)
-        teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
-        fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
-        # Remove fields that are done (this is different from other programs)
-        #fields = fields[fields['PRIORITY'] != DONE]
-
-        if plot: self.plot_depth(fields,depth,'delve-extra-%s-gt%i.png')
-
-        logging.info("Number of target fields: %d"%len(fields))
-
-        outfile = 'delve-extra-fields.fits.fz'
-        logging.info("Writing %s..."%outfile)
-        fields.write(outfile,clobber=True)
-
-        return fields
-
+""" TODO: Decide on how to manage O4 and O5 fields """
+    
+""" TODO: Revise bear footprint selection """
     @staticmethod
-    def footprintDEEP(ra,dec):
-        """ Selecting exposures around the deep drilling fields """
-        ra,dec = np.copy(ra), np.copy(dec)
-        sel = np.zeros(len(ra),dtype=bool)
-        filename = fileio.get_datafile('LV_MC_analogs_DECam.txt')
-        targets = np.genfromtxt(filename,names=True,dtype=None)
-        for t in targets:
-            sel |= (angsep(t['RA'],t['Dec'],ra,dec) < t['r_vir'])
-        return sel
-
-    @staticmethod
-    def footprintMC(ra,dec):
-        """ Selecting exposures around the Magellanic Clouds """
-        ra,dec = np.copy(ra), np.copy(dec)
-        sel = angsep(constants.RA_LMC,constants.DEC_LMC,ra,dec) < 25.0
-        sel |= angsep(constants.RA_SMC,constants.DEC_SMC,ra,dec) < 15.0
-
-        return sel
-
-    @staticmethod
-    def footprintWIDE(ra,dec):
-        """ Selecting wide-field exposures plane """
-        ra,dec = np.copy(ra), np.copy(dec)
-        sel = (dec < 0)
-        return sel
-
-    @staticmethod
-    def footprintMaglites2(ra,dec):
-        from obztak.maglites2 import Maglites2Survey
-        return Maglites2Survey.footprint(ra,dec)
-
-    @staticmethod
-    def footprintEXTRA(ra,dec):
-        """ Select extra exposures outside nominal DELVE survey """
+    def footprintBEAR(ra,dec):
+        """ Select extra exposures for BEAR survey """
         ra,dec = np.copy(ra), np.copy(dec)
 
         # Between S82 and SPT
@@ -515,12 +294,23 @@ class SirenasSurvey(Survey):
 
         return sel
 
+""" TODO: Revise O4 footprint selection """
     @staticmethod
     def footprintEXTRA(ra,dec):
         """ Selecting wide-field exposures plane """
         ra,dec = np.copy(ra), np.copy(dec)
         sel = (dec < 30)
         return sel
+
+""" TODO: Revise O5 footprint selection """
+    @staticmethod
+    def footprintEXTRA(ra,dec):
+        """ Selecting wide-field exposures plane """
+        ra,dec = np.copy(ra), np.copy(dec)
+        sel = (dec < 30)
+        return sel
+
+
 
     @staticmethod
     def bright_stars(ra,dec):
@@ -612,7 +402,7 @@ class SirenasSurvey(Survey):
                 plt.savefig(outbase%(b,d),bbox_inches='tight')
                 plt.close()
 
-
+""" Start TODO again here"""
 class DelveFieldArray(FieldArray):
     PROGRAM  = PROGRAM
     PROPID   = PROPID
