@@ -49,6 +49,8 @@ class SirenasSurvey(Survey):
 
     """ Instantiate the relevant nights and half nights"""
 
+# These are some test nights
+
     nights_2023B = [
         ['2023/08/23','first'], #DDT
         ['2023/09/01','full'],
@@ -126,7 +128,7 @@ class SirenasSurvey(Survey):
 
 
 	""" 
-	TODO: Better understand this, and see if we have any exclusion zones for Sirenas
+	Exclusion zones
 
 	This is in the form of hex#-tile#-band
 
@@ -270,7 +272,7 @@ class SirenasSurvey(Survey):
         fields['EXPTIME'] = np.tile(EXPTIME,len(data))
         fields['PRIORITY'] = fields['TILING']
 
-        sel = self.footprintBEAR(fields['RA'],fields['DEC']) # Bear footprint?
+        sel = self.footprintBEAR(fields['RA'],fields['DEC']) 
         sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
         # sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
         #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
@@ -670,7 +672,7 @@ class SirenasTactician(Tactician):
 
     def __init__(self, *args, **kwargs):
         super(SirenasTactician,self).__init__(*args,**kwargs)
-        #Default to mode 'wide' if no mode in kwargs
+        #Default to mode 'bear' if no mode in kwargs
         self.mode = kwargs.get('mode','bear') 
 
 
@@ -799,7 +801,7 @@ class SirenasTactician(Tactician):
         # sel[ngc55] = False
 
         # # Set infinite weight to all disallowed fields
-        # weight[~sel] = np.inf
+        weight[~sel] = np.inf
 
         return weight
 
@@ -856,7 +858,7 @@ class SirenasTactician(Tactician):
         # sel[ngc55] = False
 
         # # Set infinite weight to all disallowed fields
-        # weight[~sel] = np.inf
+        weight[~sel] = np.inf
 
         return weight
 
@@ -913,7 +915,7 @@ class SirenasTactician(Tactician):
         # sel[ngc55] = False
 
         # # Set infinite weight to all disallowed fields
-        # weight[~sel] = np.inf
+        weight[~sel] = np.inf
 
         return weight
 
