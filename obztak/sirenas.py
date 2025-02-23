@@ -78,7 +78,7 @@ class SirenasSurvey(Survey):
     They should proceed sequentially, but optimize ordering of hexes for each mini-survey
     As of now, we are deselecting on the milky way only. We have the option to deselect based on SMASH/DES/DEEP fields, but that is not set to true now.
 
-    Current status: Finished not tested; meaning you have started - SM
+    Current status: Finished not tested; "That's all" - Phil Collins
 
     """
 
@@ -412,7 +412,14 @@ class SirenasSurvey(Survey):
 
         return fields
 
-""" FOOTPRINTS """
+    """ 
+    FOOTPRINTS 
+
+    
+
+    Current status: Overhaul in progress, need skymaps to proceed further; "You can't hurry love" - Phil Collins
+
+    """
     
 """ TODO: Revise bear footprint selection"""
     @staticmethod
@@ -466,7 +473,11 @@ class SirenasSurvey(Survey):
             sel |= (angsep(t['ra'],t['dec'],ra,dec) < t['radius'])
         return sel
 
+    """ 
 
+    TODO: Determine if we want to use the covered method, and if so, if we would like to modify the previously covered fields file
+
+    """
     @staticmethod
     def covered(fields, percent=85., dirname=None, basename=None):
         """
@@ -620,6 +631,16 @@ class SirenasFieldArray(FieldArray):
         return query
 
 
+"""
+
+SCHEDULER
+
+
+
+Current status: in overhaul
+
+"""
+
 class SirenasScheduler(Scheduler):
     _defaults = odict(list(Scheduler._defaults.items()) + [
         ('tactician','coverage'),
@@ -629,22 +650,29 @@ class SirenasScheduler(Scheduler):
 
     FieldType = SirenasFieldArray
 
-""" TODO: Revise the conditions in this tactician, better understand what they are """
+"""
+
+TACTICIAN
+
+Must have a discussion about the airmass minimum and maximums - I set them below as a placeholder.
+
+Current status: in overhaul
+
+"""
+
 class SirenasTactician(Tactician):
-    CONDITIONS = odict([
+    CONDITIONS = odict([   # airmass_min, airmass_max
         (None,       [1.0, 2.0]),
-        ('wide',     [1.0, 1.6]),
-        ('deep',     [1.0, 1.4]),
-        ('mc',       [1.0, 1.8]),
-        ('gw',       [1.0, 2.0]),
-        ('extra',    [1.0, 1.6]),
-        ('delver',   [1.0, 1.3]),
-    ])
+        ('bear',     [1.0, 1.6]),
+        ('o4',     [1.0, 1.6]),
+        ('o5',       [1.0, 1.8])
+        ])
 
     def __init__(self, *args, **kwargs):
         super(SirenasTactician,self).__init__(*args,**kwargs)
         #Default to mode 'wide' if no mode in kwargs
-        self.mode = kwargs.get('mode','wide') # TODO: revise default mode based on above conditions
+        self.mode = kwargs.get('mode','bear') 
+
 
     @property
     def viable_fields(self):
@@ -684,45 +712,40 @@ class SirenasTactician(Tactician):
             sel &= (np.char.count('gri',self.fields['FILTER'].astype(str)) > 0)
         return sel
 
+
     ''' TODO: revise weights based on strategy choices'''
     @property
     def weight(self):
         """ Calculate the weight from set of programs. """
 
         if self.mode is None:
-            # First priority is deep
-            weights = self.weight_deep()
-            if self.fwhm < FWHM_DEEP and np.isfinite(weights).sum():
-                logging.info("DEEP")
+            # First priority is bear
+            weights = self.weight_bear()
+            if self.fwhm < FWHM_BEAR and np.isfinite(weights).sum():
+                logging.info("BEAR")
                 return weights
             # Then mc
-            weights = self.weight_mc()
-            if self.fwhm < FWHM_MC and np.isfinite(weights).sum():
-                logging.info("MC")
+            weights = self.weight_o4()
+            if self.fwhm < FWHM_O4 and np.isfinite(weights).sum():
+                logging.info("O4")
                 return weights
             # Then wide
-            weights = self.weight_wide()
+            weights = self.weight_O5()
             if np.isfinite(weights).sum():
-                logging.info("WIDE")
+                logging.info("O5")
                 return weights
-        elif self.mode == 'deep':
-            return self.weight_deep()
-        elif self.mode == 'mc':
-            return self.weight_mc()
-        elif self.mode == 'wide':
-            return self.weight_wide()
-        elif self.mode == 'gw':
-            return self.weight_gw()
-        elif self.mode == 'extra':
-            return self.weight_extra()
-        elif self.mode == 'delver':
-            return self.weight_delver()
+        elif self.mode == 'bear':
+            return self.weight_bear()
+        elif self.mode == 'o4':
+            return self.weight_o4()
+        elif self.mode == 'o5':
+            return self.weight_o5()
         else:
             raise ValueError("Unrecognized mode: %s"%self.mode)
 
         raise ValueError("No viable fields")
 
-    ''' TODO: Add additional weights based on subsurveyss (bear, O4, O5) '''
+
     def weight_deep(self):
         """ Calculate the field weight for the WIDE survey.
 
@@ -775,6 +798,8 @@ class SirenasTactician(Tactician):
         weight[~sel] = np.inf
 
         return weight
+
+    ''' TODO: Add additional weights based on subsurveyss (bear, O4, O5) '''
 
     def select_index(self):
         weight = self.weight
