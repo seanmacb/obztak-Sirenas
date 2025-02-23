@@ -724,12 +724,12 @@ class SirenasTactician(Tactician):
             if self.fwhm < FWHM_BEAR and np.isfinite(weights).sum():
                 logging.info("BEAR")
                 return weights
-            # Then mc
+            # Then o4
             weights = self.weight_o4()
             if self.fwhm < FWHM_O4 and np.isfinite(weights).sum():
                 logging.info("O4")
                 return weights
-            # Then wide
+            # Then o5
             weights = self.weight_O5()
             if np.isfinite(weights).sum():
                 logging.info("O5")
@@ -746,8 +746,8 @@ class SirenasTactician(Tactician):
         raise ValueError("No viable fields")
 
 
-    def weight_deep(self):
-        """ Calculate the field weight for the WIDE survey.
+     def weight_bear(self):
+        """ Calculate the field weight for the BEAR survey.
 
         Parameters
         ----------
@@ -761,7 +761,7 @@ class SirenasTactician(Tactician):
         moon_angle = self.moon_angle
 
         sel = self.viable_fields
-        sel &= (self.fields['PROGRAM'] == 'delve-deep')
+        sel &= (self.fields['PROGRAM'] == 'sirenas-bear')
 
         weight = np.zeros(len(sel))
 
@@ -774,32 +774,150 @@ class SirenasTactician(Tactician):
         #sel &= self.fields['FILTER'] == 'z'
 
         # Airmass cut
-        airmass_min, airmass_max = self.CONDITIONS['deep']
+        airmass_min, airmass_max = self.CONDITIONS['bear']
         sel &= ((airmass > airmass_min) & (airmass < airmass_max))
 
         ## Try hard to do high priority fields
         weight += 1e2 * self.fields['PRIORITY']
         ## Weight different fields
 
-        sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
-        sel[sexB] = False
+	"""
+	I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
+	"""
 
-        ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
-        weight[ic5152] += 0.0
+        # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
+        # sel[sexB] = False
 
-        ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
-        weight[ngc300] += 1e3
-        #sel[ngc300] = False
+        # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
+        # weight[ic5152] += 0.0
 
-        ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
-        sel[ngc55] = False
+        # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
+        # weight[ngc300] += 1e3
+        # #sel[ngc300] = False
 
-        # Set infinite weight to all disallowed fields
-        weight[~sel] = np.inf
+        # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
+        # sel[ngc55] = False
+
+        # # Set infinite weight to all disallowed fields
+        # weight[~sel] = np.inf
 
         return weight
 
-    ''' TODO: Add additional weights based on subsurveyss (bear, O4, O5) '''
+    def weight_o4(self):
+        """ Calculate the field weight for the o4 survey.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        weight : array of weights per field
+        """
+        airmass = self.airmass
+        moon_angle = self.moon_angle
+
+        sel = self.viable_fields
+        sel &= (self.fields['PROGRAM'] == 'sirenas-o4')
+
+        weight = np.zeros(len(sel))
+
+        # Moon angle constraints
+        moon_limit = 30. # + (self.moon.phase/5.)
+        sel &= (moon_angle > moon_limit)
+
+        # Sky brightness selection
+        sel &= self.skybright_select()
+        #sel &= self.fields['FILTER'] == 'z'
+
+        # Airmass cut
+        airmass_min, airmass_max = self.CONDITIONS['o4']
+        sel &= ((airmass > airmass_min) & (airmass < airmass_max))
+
+        ## Try hard to do high priority fields
+        weight += 1e2 * self.fields['PRIORITY']
+        ## Weight different fields
+
+	"""
+	I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
+	"""
+
+        # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
+        # sel[sexB] = False
+
+        # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
+        # weight[ic5152] += 0.0
+
+        # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
+        # weight[ngc300] += 1e3
+        # #sel[ngc300] = False
+
+        # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
+        # sel[ngc55] = False
+
+        # # Set infinite weight to all disallowed fields
+        # weight[~sel] = np.inf
+
+        return weight
+
+    def weight_o5(self):
+        """ Calculate the field weight for the o5 survey.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        weight : array of weights per field
+        """
+        airmass = self.airmass
+        moon_angle = self.moon_angle
+
+        sel = self.viable_fields
+        sel &= (self.fields['PROGRAM'] == 'sirenas-o5')
+
+        weight = np.zeros(len(sel))
+
+        # Moon angle constraints
+        moon_limit = 30. # + (self.moon.phase/5.)
+        sel &= (moon_angle > moon_limit)
+
+        # Sky brightness selection
+        sel &= self.skybright_select()
+        #sel &= self.fields['FILTER'] == 'z'
+
+        # Airmass cut
+        airmass_min, airmass_max = self.CONDITIONS['o5']
+        sel &= ((airmass > airmass_min) & (airmass < airmass_max))
+
+        ## Try hard to do high priority fields
+        weight += 1e2 * self.fields['PRIORITY']
+        ## Weight different fields
+
+	"""
+	I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
+	"""
+
+        # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
+        # sel[sexB] = False
+
+        # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
+        # weight[ic5152] += 0.0
+
+        # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
+        # weight[ngc300] += 1e3
+        # #sel[ngc300] = False
+
+        # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
+        # sel[ngc55] = False
+
+        # # Set infinite weight to all disallowed fields
+        # weight[~sel] = np.inf
+
+        return weight
+
+
 
     def select_index(self):
         weight = self.weight
