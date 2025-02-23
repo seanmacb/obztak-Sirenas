@@ -12,6 +12,7 @@ from collections import OrderedDict as odict
 import pandas as pd
 import numpy as np
 import fitsio
+import healpy as hp
 
 from obztak.field import FieldArray, SISPI_DICT, SEP
 from obztak.survey import Survey
@@ -60,7 +61,7 @@ class SirenasSurvey(Survey):
         ['2024/01/01','second'],
         ['2024/01/19','first'],
         ['2024/01/20','first'],
-        ['2024/01/28','full'],
+        ['2024/01/28','full']
 
     ]
 
@@ -68,6 +69,18 @@ class SirenasSurvey(Survey):
 
     nights = nights_2023B \
              + extra_nights
+
+    """ 
+
+    FIELDS 
+    
+    We have three mini-surveys: bear, O4, and O5
+    They should proceed sequentially, but optimize ordering of hexes for each mini-survey
+    As of now, we are deselecting on the milky way only. We have the option to deselect based on SMASH/DES/DEEP fields, but that is not set to true now.
+
+    Current status: Finished not tested; meaning you have started - SM
+
+    """
 
     def prepare_fields(self, infile=None, outfile=None, plot=True, **kwargs):
         """ Create the list of fields to be targeted by this survey.
@@ -88,20 +101,20 @@ class SirenasSurvey(Survey):
         logging.info("Reading tiles from: %s"%os.path.basename(infile))
         data = fitsio.read(infile)
 
-        deep_fields  = self.create_deep_fields(data)
-        mc_fields    = self.create_mc_fields(data)
-        wide_fields  = self.create_wide_fields(data)
-        extra_fields = self.create_extra_fields(data)
+        bear_fields  = self.create_bear_fields(data)
+        O4_fields    = self.create_O4_fields(data)
+        O5_fields  = self.create_O5_fields(data)
 
+	""" Comment: Sean is commenting overlaps out, since that is not really what we want to do here. Overlaps are okay, especially for a first pass"""
         # Overlap fields
-        sel  = (~np.in1d(extra_fields.unique_id,wide_fields.unique_id))
-        sel &= (~np.in1d(extra_fields.unique_id,mc_fields.unique_id))
+        # sel  = (~np.in1d(extra_fields.unique_id,wide_fields.unique_id))
+        # sel &= (~np.in1d(extra_fields.unique_id,mc_fields.unique_id))
         ## Mark overlap fields as DONE
         #extra_fields['PRIORITY'][~sel] = DONE
         # Remove overlap fields
-        extra_fields = extra_fields[sel]
+        # extra_fields = extra_fields[sel]
 
-        fields = wide_fields + mc_fields + deep_fields + extra_fields
+        fields = bear_fields + O4_fields + O5_fields 
 
         logging.info("Masking bright stars...")
         mask = self.bright_stars(fields['RA'],fields['DEC'])
@@ -112,47 +125,53 @@ class SirenasSurvey(Survey):
         fields['PRIORITY'][mask] = DONE
 
 
-	""" TODO: Better understand this, and see if we have any exclusion zones for Sirenas """
+	""" 
+	TODO: Better understand this, and see if we have any exclusion zones for Sirenas
+
+	This is in the form of hex#-tile#-band
+
+	Comment: I don't think we have any exclusion zones, beside the milky way for obvious reasons. Therefore, I am commenting these out. 
+	"""
         # Exclusion
-        exclude  = [#pole
-            '399-01-g','399-01-r','399-01-i',
-            '399-02-g','399-02-r','399-02-i',
-            '399-04-g','399-04-r','399-04-i',
-            '436-01-i','437-01-i',
-            '417-03-g','417-03-r','417-03-i',
-        ]
-        exclude += [ # Orion Nebula
-            '5696-01-i','5696-02-i','5696-03-i','5696-04-i',
-            '5760-01-i','5760-02-i','5760-03-i','5760-04-i',
-            '5761-01-i','5761-02-i','5761-03-i','5761-04-i',
-            '5780-01-i','5780-02-i','5780-03-i','5780-04-i',
-            '5781-01-i','5781-02-i','5781-03-i','5781-04-i',
-            '5782-01-i','5782-02-i','5782-03-i','5782-04-i',
-            '5783-01-i','5783-02-i','5783-03-i','5783-04-i',
-            '5798-01-i','5798-02-i','5798-03-i','5798-04-i',
-            '5799-01-i','5799-02-i','5799-03-i','5799-04-i',
-        ]
-        exclude += [# flame nebula
-            '5716-01-g','5716-01-i'
-        ]
-        exclude += [# rho ophiuchi nebula
-        ]
-        exclude += [ # MC poles
-            '14110-01-g','14110-02-g','14110-03-g','14110-04-g',
-            '14110-01-r','14110-02-r','14110-03-r','14110-04-r',
-            '14110-01-i','14110-02-i','14110-03-i','14110-04-i',
-            '15464-01-i','15464-02-i','15464-03-i','15464-04-i',
-            '15465-01-i','15465-02-i','15465-03-i','15465-04-i',
-            '15484-03-i',
-        ]
-        exclude += [ # Other
-            '7246-01-r','7264-01-i',
-            '7246-01-i','7246-02-i','7246-02-i',
-            '12253-03-i','14238-03-i',
-            '14241-03-i','14255-03-i','14256-03-i','14257-03-i',
-            '14258-03-i','15465-04-g',
-        ]
-        fields['PRIORITY'][np.in1d(fields.unique_id,exclude)] = DONE
+#         exclude  = [#pole
+#             '399-01-g','399-01-r','399-01-i',
+#             '399-02-g','399-02-r','399-02-i',
+#             '399-04-g','399-04-r','399-04-i',
+#             '436-01-i','437-01-i',
+#             '417-03-g','417-03-r','417-03-i',
+#         ]
+#         exclude += [ # Orion Nebula
+#             '5696-01-i','5696-02-i','5696-03-i','5696-04-i',
+#             '5760-01-i','5760-02-i','5760-03-i','5760-04-i',
+#             '5761-01-i','5761-02-i','5761-03-i','5761-04-i',
+#             '5780-01-i','5780-02-i','5780-03-i','5780-04-i',
+#             '5781-01-i','5781-02-i','5781-03-i','5781-04-i',
+#             '5782-01-i','5782-02-i','5782-03-i','5782-04-i',
+#             '5783-01-i','5783-02-i','5783-03-i','5783-04-i',
+#             '5798-01-i','5798-02-i','5798-03-i','5798-04-i',
+#             '5799-01-i','5799-02-i','5799-03-i','5799-04-i',
+#         ]
+#         exclude += [# flame nebula
+#             '5716-01-g','5716-01-i'
+#         ]
+#         exclude += [# rho ophiuchi nebula
+#         ]
+#         exclude += [ # MC poles
+#             '14110-01-g','14110-02-g','14110-03-g','14110-04-g',
+#             '14110-01-r','14110-02-r','14110-03-r','14110-04-r',
+#             '14110-01-i','14110-02-i','14110-03-i','14110-04-i',
+#             '15464-01-i','15464-02-i','15464-03-i','15464-04-i',
+#             '15465-01-i','15465-02-i','15465-03-i','15465-04-i',
+#             '15484-03-i',
+#         ]
+#         exclude += [ # Other
+#             '7246-01-r','7264-01-i',
+#             '7246-01-i','7246-02-i','7246-02-i',
+#             '12253-03-i','14238-03-i',
+#             '14241-03-i','14255-03-i','14256-03-i','14257-03-i',
+#             '14258-03-i','15465-04-g',
+#         ]
+#         fields['PRIORITY'][np.in1d(fields.unique_id,exclude)] = DONE
 
         if plot:
             import pylab as plt
@@ -166,14 +185,14 @@ class SirenasSurvey(Survey):
             smap.draw_fields(fields[sel],alpha=0.3,edgecolor='none')
             smap.draw_des(color='r')
             smap.draw_milky_way()
-            smap.draw_smash()
+#             smap.draw_smash()
 
             plt.figure()
             smap = skymap.survey.SurveyMcBryde()
             smap.draw_fields(fields[sel],alpha=0.3,edgecolor='none')
             smap.draw_des(color='r')
             smap.draw_milky_way()
-            smap.draw_smash()
+#             smap.draw_smash()
 
             if outfile:
                 plt.savefig(os.path.splitext(outfile)[0]+'.png',bbox_inches='tight')
@@ -219,7 +238,11 @@ class SirenasSurvey(Survey):
         return fields
 
     def create_bear_fields(self, data, plot=False):
-        """ Create the bear field observations """
+        """ 
+	Create the bear field observations 
+	At present, I am avoiding the milky way only. 
+	We can elect to avoid DES/SMASH/Deep field observations too, but that is disabled (for now)
+	"""
         logging.info("Creating BEAR fields...")
         BANDS = ['g','i','z','r','u']
         EXPTIME = [90,90,90,90,90]
@@ -249,11 +272,11 @@ class SirenasSurvey(Survey):
 
         sel = self.footprintBEAR(fields['RA'],fields['DEC']) # Bear footprint?
         sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
-        sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
+        # sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
         #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
         #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
         # Avoid DEEP fields? yes.
-        sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
+        # sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
 
         fields = fields[sel]
 
@@ -272,43 +295,162 @@ class SirenasSurvey(Survey):
 
         return fields
 
-""" TODO: Decide fields for bear survey """
+    def create_O4_fields(self, data, plot=False):
+        """ 
+	Create the O4 field observations 
+	At present, I am avoiding the milky way only. 
+	We can elect to avoid DES/SMASH/Deep field observations too, but that is disabled (for now)
+	"""
+        logging.info("Creating O4 fields...")
+        BANDS = ['g','i','z','r','u']
+        EXPTIME = [90,90,90,90,90]
+        TILINGS = [4,4,4,4,4]
+        TEFF_MIN = TEFF_MIN_O4
 
-""" TODO: Decide on how to manage O4 and O5 fields """
+        nhexes = len(np.unique(data['TILEID']))
+        nbands = len(BANDS)
+
+        nfields = len(data)*nbands
+
+        logging.info("  Number of hexes: %d"%nhexes)
+        logging.info("  Filters: %s"%BANDS)
+        logging.info("  Exposure time: %s"%EXPTIME)
+        logging.info("  Tilings: %s"%TILINGS)
+
+        fields = FieldArray(nfields)
+        fields['PROGRAM'] = PROGRAM+'-O4'
+        fields['HEX'] = np.repeat(data['TILEID'],nbands)
+        fields['TILING'] = np.repeat(data['PASS'],nbands)
+        fields['RA'] = np.repeat(data['RA'],nbands)
+        fields['DEC'] = np.repeat(data['DEC'],nbands)
+
+        fields['FILTER'] = np.tile(BANDS,len(data))
+        fields['EXPTIME'] = np.tile(EXPTIME,len(data))
+        fields['PRIORITY'] = fields['TILING']
+
+        sel = self.footprintO4(fields['RA'],fields['DEC']) # Bear footprint?
+        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
+        # sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
+        #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
+        #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
+        # Avoid DEEP fields? yes.
+        # sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
+
+        fields = fields[sel]
+
+        # Covered fields
+        frac, depth = self.covered(fields)
+        teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
+        fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
+
+        if plot: self.plot_depth(fields,depth,'sirenas-O4-%s-gt%i.png')
+
+        logging.info("Number of target fields: %d"%len(fields))
+
+        outfile = 'sirenas-O4-fields.fits.fz'
+        logging.info("Writing %s..."%outfile)
+        fields.write(outfile,clobber=True)
+
+        return fields
+
+
+    def create_O5_fields(self, data, plot=False):
+        """ 
+	Create the O5 field observations 
+	At present, I am avoiding the milky way only.
+	We can elect to avoid DES/SMASH/Deep field observations too, but that is disabled (for now)
+	"""
+        logging.info("Creating O5 fields...")
+        BANDS = ["M4112", "M4376", "M4640", "M4904", "M5168"]
+        EXPTIME = [90,90,90,90,90]
+        TILINGS = [4,4,4,4,4]
+        TEFF_MIN = TEFF_MIN_O5
+
+        nhexes = len(np.unique(data['TILEID']))
+        nbands = len(BANDS)
+
+        nfields = len(data)*nbands
+
+        logging.info("  Number of hexes: %d"%nhexes)
+        logging.info("  Filters: %s"%BANDS)
+        logging.info("  Exposure time: %s"%EXPTIME)
+        logging.info("  Tilings: %s"%TILINGS)
+
+        fields = FieldArray(nfields)
+        fields['PROGRAM'] = PROGRAM+'-O5'
+        fields['HEX'] = np.repeat(data['TILEID'],nbands)
+        fields['TILING'] = np.repeat(data['PASS'],nbands)
+        fields['RA'] = np.repeat(data['RA'],nbands)
+        fields['DEC'] = np.repeat(data['DEC'],nbands)
+
+        fields['FILTER'] = np.tile(BANDS,len(data))
+        fields['EXPTIME'] = np.tile(EXPTIME,len(data))
+        fields['PRIORITY'] = fields['TILING']
+
+        sel = self.footprintO5(fields['RA'],fields['DEC']) # Bear footprint?
+        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
+        # sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
+        #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
+        #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
+        # Avoid DEEP fields? yes.
+        # sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
+
+        fields = fields[sel]
+
+        # Covered fields
+        frac, depth = self.covered(fields)
+        teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
+        fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
+
+        if plot: self.plot_depth(fields,depth,'sirenas-O5-%s-gt%i.png')
+
+        logging.info("Number of target fields: %d"%len(fields))
+
+        outfile = 'sirenas-O5-fields.fits.fz'
+        logging.info("Writing %s..."%outfile)
+        fields.write(outfile,clobber=True)
+
+        return fields
+
+""" FOOTPRINTS """
     
-""" TODO: Revise bear footprint selection """
+""" TODO: Revise bear footprint selection"""
     @staticmethod
     def footprintBEAR(ra,dec):
-        """ Select extra exposures for BEAR survey """
-        ra,dec = np.copy(ra), np.copy(dec)
+        """ Select exposures for BEAR survey """
+ 	""" In general, if we are in the 90% contour, return true. Else, return false"""
+        
+	ra,dec = np.copy(ra), np.copy(dec)
 
-        # Between S82 and SPT
-        sel1  = (dec >= -40) & (dec <= -15)
-        sel1 &= ((ra >= 280) & (ra <= 360)) | (ra < 10)
-        # Close to the Galactic plane
-        sel2 = (dec >= -20) & (dec <= -5)
-        sel2 &= (ra >= 240) & (ra <= 280)
-
-        # Either of the two
-        sel = sel1 | sel2
+	sel = # bool based on above criteria
 
         return sel
 
 """ TODO: Revise O4 footprint selection """
     @staticmethod
-    def footprintEXTRA(ra,dec):
-        """ Selecting wide-field exposures plane """
+    def footprintO4(ra,dec):
+        """ 
+	Selecting O4 exposures plane 
+	To my knowledge, this should mirror the BEAR survey, but I am not 100% sure at this time
+
+	"""
         ra,dec = np.copy(ra), np.copy(dec)
-        sel = (dec < 30)
-        return sel
+        
+
+	return sel
 
 """ TODO: Revise O5 footprint selection """
     @staticmethod
-    def footprintEXTRA(ra,dec):
-        """ Selecting wide-field exposures plane """
-        ra,dec = np.copy(ra), np.copy(dec)
-        sel = (dec < 30)
-        return sel
+    def footprintO5(ra,dec):
+        """ 
+	Selecting O5 exposures plane 
+	This should start with the BEAR footprint, and then downselect for the skymaps we care about
+	Given the computational cost of that, we should probably just have a separate skymap
+	"""
+
+	ra,dec = np.copy(ra), np.copy(dec)
+        
+	return sel
 
 
 
