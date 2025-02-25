@@ -28,7 +28,13 @@ WAVE = odict([
     ( 'Y'  , 1.0523   ), # Y (990nm) -> i (780nm)
     ('dimm', 1/1.0916 ), # dimm (500 nm)->i (780nm)
     ('VR'  , 0.9551   ), # VR (620 nm)->i (780nm)
+    ('M411', 0.8797   ), # M411 (411 nm) ->i (780nm)
+    ('M438', 0.8909   ), # M438 (438 nm) ->i (780nm)
+    ('M464', 0.9013   ), # M464 (464 nm) ->i (780nm)
+    ('M490', 0.9112   ), # M490 (490 nm) ->i (780nm)
+    ('M517', 0.9210   ), # M517 (517 nm) ->i (780nm)
 ])
+
 WAVE_DF = pd.DataFrame({'filter':WAVE.keys(),'trans':WAVE.values()})
 DECAMINST = 0.5 # DECam instrumental contribution to the PSF [arcsec]
 DIMMINST = 0.0  # DIMM instrumental contribution to the PSF [arcsec]
@@ -229,7 +235,7 @@ class QcSeeing(Seeing):
                 select date, qc_fwhm as fwhm, airmass, filter from exposure
                 where date > '%s' and date < '%s'
                 --and filter != 'VR' and qc_fwhm is not NULL
-                --and filter in ('g','r','i','z','Y')
+                --and filter in ('g','r','i','z','Y','M411','M438','M464','M490','M517')
                 and qc_fwhm is not NULL and qc_fwhm > 0
                 """%(tmin, tmax)
                 logging.debug(query)
