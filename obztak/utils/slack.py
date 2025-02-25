@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
 Slack interface.
+
+TODO: Update token and channel when we are ready
+
 """
 __author__ = "Alex Drlica-Wagner"
 
