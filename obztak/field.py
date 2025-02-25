@@ -68,15 +68,15 @@ SISPI_MAP = odict([
 
 class FieldArray(np.recarray):
     """ Array for holding observation fields. """
-    PROGRAM = 'maglites'
-    PROPID  = '2016A-0366'
+    PROGRAM = 'sirenas'
+    PROPID  = '2016A-0366' # TODO: Update this
 
     SISPI_DICT = copy.deepcopy(SISPI_DICT)
     SISPI_DICT['program'] = PROGRAM
     SISPI_DICT['propid'] = PROPID
 
-    OBJECT_FMT = 'MAGLITES field'+SEP+' %s'
-    SEQID_FMT  = 'MAGLITES scheduled'+SEP+' %(DATE)s'
+    OBJECT_FMT = 'SIRENAS field'+SEP+' %s'
+    SEQID_FMT  = 'SIRENAS scheduled'+SEP+' %(DATE)s'
 
     BANDS = constants.BANDS
 
@@ -235,7 +235,9 @@ class FieldArray(np.recarray):
         # Ignore exposures with the wrong propid
         # However, exposures being exposed have propid = None
         propid = sdict.get('propid')
-        PROPIDS = [cls.PROPID, '2022B-780972'] # Hack for Ferguson
+        # PROPIDS = [cls.PROPID, '2022B-780972'] # Hack for Ferguson
+	# Sean commented the above out, and is revised for below 
+        PROPIDS = [cls.PROPID] 
         if check_propid and ((propid is not None) and (propid not in PROPIDS)):
             logging.warn("Found exposure with propid=%s; skipping..."%propid)
             return False
@@ -288,6 +290,8 @@ class FieldArray(np.recarray):
     @classmethod
     def query(cls, **kwargs):
         """ Generate the database query.
+	
+	TODO: Verify that we are using 90s exposures. If so, no change needed. Otherwise, will need to update the query below
 
         Parameters:
         -----------
