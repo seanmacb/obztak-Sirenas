@@ -32,8 +32,8 @@ class Scheduler(object):
     """
     _defaults = odict([
         #('tactician','coverage'),
-        ('windows',os.path.join(fileio.get_datadir(),"maglites-windows.csv")),
-        ('targets',os.path.join(fileio.get_datadir(),"maglites-target-fields.csv")),
+        ('windows',os.path.join(fileio.get_datadir(),"sirenas-windows.csv")),
+        ('targets',os.path.join(fileio.get_datadir(),"sirenas-target-fields.csv")),
     ])
     FieldType = FieldArray
 
