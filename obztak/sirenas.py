@@ -35,8 +35,8 @@ TILINGS = [1,2,3,4,5,6,7,8,9,10]
 DONE = -1
 
 # TODO: Need to have a discussion about what kinds of mini-surveys we would want, and what the t_eff and FWHM limits should be
-TEFF_MIN_BEAR = pd.DataFrame(dict(FILTER=BANDS[0:5],TEFF=[0.4,0.4,0.4,0.4,0.4])) # ugriz, teff threshold at 0.4
-TEFF_MIN_O4 = pd.DataFrame(dict(FILTER=BANDS[0:5],TEFF=[0.4,0.4,0.4,0.4,0.4])) # ugriz, teff threshold at 0.4
+TEFF_MIN_BEAR = pd.DataFrame(dict(FILTER=BANDS[1:5],TEFF=[0.4,0.4,0.4,0.4])) # griz, teff threshold at 0.4
+TEFF_MIN_O4 = pd.DataFrame(dict(FILTER=BANDS[1:5],TEFF=[0.4,0.4,0.4,0.4])) # griz, teff threshold at 0.4
 TEFF_MIN_O5 = pd.DataFrame(dict(FILTER=BANDS[-5:],TEFF=[0.4,0.4,0.4,0.4,0.4])) # medium bands, teff threshold at 0.4
 
 FWHM_BEAR = 1 # Arcsec
@@ -49,26 +49,28 @@ o4EventFile = dataDir + "o4Events.csv"
 o5EventFile = dataDir + "o5Events.csv"
 skymapDictFile = dataDir + "skymap_mapping.fits.gz"
 
-eventNameDict = {0:"S250119cv",       
-		 1:"S240527fv",    
-		 2:"S240915b" ,   
-		 3:"GW190814" ,   
-		 4:"GW170818" ,   
-		 5:"GW200311" ,   		
-		 6:"GW200208" ,   
-                 7:"S240413p" ,   
-                 8:"GW190701" ,   
-                 9:"GW200224" ,   
-                 10:"S250205bk",  
-                 11:"S240908bs",
-                 12:"S240511i",
-                 13:"GW170814",
-                 14:"S240922df",
-                 15:"GW190503",
-		 16:"S240514x",
-                 17:"GW200202",
-                 18:"S240923ct",
-                 19:"S241110br"}
+eventNameDict = { 0:"None",
+		  1:"S250119cv",       
+		  2:"S240527fv",    
+		  3:"S240915b" ,   
+		  4:"GW190814" ,   
+		  5:"GW170818" ,   
+		  6:"GW200311" ,   		
+                  7:"GW200208" ,   
+                  8:"S240413p" ,   
+                  9:"GW190701" ,   
+                 10:"GW200224" ,   
+                 11:"S250205bk",  
+                 12:"S240908bs",
+                 13:"S240511i",
+                 14:"GW170814",
+                 15:"S240922df",
+		 16:"GW190503",
+                 17:"S240514x",
+                 18:"GW200202",
+                 19:"S240923ct",
+                 20:"S241110br"
+}
 
 class SirenasSurvey(Survey):
     """ Survey sublcass for SIRENAS. """
@@ -278,8 +280,8 @@ class SirenasSurvey(Survey):
 	"""
         logging.info("Creating BEAR fields...")
 
-        BANDS = ['g','i','z','r','u']
-        EXPTIME = 90
+        BANDS = np.sort(['g','i','z','r'])
+        EXPTIME = [90,90,90,90]
         # TILINGS = [4,4,4,4,4] # commenting this out because the number of tilings is variable
         TEFF_MIN = TEFF_MIN_BEAR
 
@@ -305,7 +307,7 @@ class SirenasSurvey(Survey):
 
 
         sel = self.footprintBEAR(fields['RA'],fields['DEC']) 
-        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
+        # sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
         # sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
         #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
         #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
@@ -314,7 +316,8 @@ class SirenasSurvey(Survey):
 
         fields = fields[sel]
 
-	fields['TILING'] = self.computeTilings(fields,BANDS) 
+
+	fields['TILING'] = self.computeTilings(fields,BANDS,mode='bear') 
         fields['PRIORITY'] = fields['TILING']
 
         # Covered fields
@@ -340,9 +343,9 @@ class SirenasSurvey(Survey):
 	We can elect to avoid DES/SMASH/Deep field observations too, but that is disabled (for now)
 	"""
         logging.info("Creating O4 fields...")
-        BANDS = ['g','i','z','r','u']
-        EXPTIME = [90,90,90,90,90]
-        TILINGS = [4,4,4,4,4]
+        BANDS = np.sort(['g','i','z','r'])
+        EXPTIME = [90,90,90,90]
+        # TILINGS = [4,4,4,4,4]
         TEFF_MIN = TEFF_MIN_O4
 
         nhexes = len(np.unique(data['TILEID']))
@@ -358,16 +361,16 @@ class SirenasSurvey(Survey):
         fields = FieldArray(nfields)
         fields['PROGRAM'] = PROGRAM+'-O4'
         fields['HEX'] = np.repeat(data['TILEID'],nbands)
-        fields['TILING'] = np.repeat(data['PASS'],nbands)
+        # fields['TILING'] = np.repeat(data['PASS'],nbands)
         fields['RA'] = np.repeat(data['RA'],nbands)
         fields['DEC'] = np.repeat(data['DEC'],nbands)
 
         fields['FILTER'] = np.tile(BANDS,len(data))
         fields['EXPTIME'] = np.tile(EXPTIME,len(data))
-        fields['PRIORITY'] = fields['TILING']
+        # fields['PRIORITY'] = fields['TILING']
 
         sel = self.footprintO4(fields['RA'],fields['DEC']) # Bear footprint?
-        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
+        # sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
         # sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
         #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
         #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
@@ -375,6 +378,11 @@ class SirenasSurvey(Survey):
         # sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
 
         fields = fields[sel]
+
+	
+	fields['TILING'] = self.computeTilings(fields,BANDS,mode='o4') 
+	fields['PRIORITY'] = fields['TILING']
+
 
         # Covered fields
         frac, depth = self.covered(fields)
@@ -399,9 +407,9 @@ class SirenasSurvey(Survey):
 	We can elect to avoid DES/SMASH/Deep field observations too, but that is disabled (for now)
 	"""
         logging.info("Creating O5 fields...")
-        BANDS = ["M4112", "M4376", "M4640", "M4904", "M5168"]
+        BANDS = np.sort(["M4112", "M4376", "M4640", "M4904", "M5168"])
         EXPTIME = [90,90,90,90,90]
-        TILINGS = [4,4,4,4,4]
+        # TILINGS = [4,4,4,4,4]
         TEFF_MIN = TEFF_MIN_O5
 
         nhexes = len(np.unique(data['TILEID']))
@@ -417,16 +425,16 @@ class SirenasSurvey(Survey):
         fields = FieldArray(nfields)
         fields['PROGRAM'] = PROGRAM+'-O5'
         fields['HEX'] = np.repeat(data['TILEID'],nbands)
-        fields['TILING'] = np.repeat(data['PASS'],nbands)
+        # fields['TILING'] = np.repeat(data['PASS'],nbands)
         fields['RA'] = np.repeat(data['RA'],nbands)
         fields['DEC'] = np.repeat(data['DEC'],nbands)
 
         fields['FILTER'] = np.tile(BANDS,len(data))
         fields['EXPTIME'] = np.tile(EXPTIME,len(data))
-        fields['PRIORITY'] = fields['TILING']
+        # fields['PRIORITY'] = fields['TILING']
 
         sel = self.footprintO5(fields['RA'],fields['DEC']) # Bear footprint?
-        sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
+        # sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
         # sel &= (~self.footprintDES(fields['RA'],fields['DEC'])) # Avoiding DES fields
         #sel &= (~self.footprintSMASH(fields['RA'],fields['DEC'],angsep=0.75*DECAM))
         #sel &= (~self.footprintmc(fields['RA'],fields['DEC']))
@@ -434,6 +442,11 @@ class SirenasSurvey(Survey):
         # sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
 
         fields = fields[sel]
+
+	
+	fields['TILING'] = self.computeTilings(fields,BANDS,mode='o5') 
+	fields['PRIORITY'] = fields['TILING']
+
 
         # Covered fields
         frac, depth = self.covered(fields)
@@ -486,7 +499,7 @@ class SirenasSurvey(Survey):
 	    raise ValueError("Unrecognized mode: %s\n Supported modes are 'bear', 'o4', and 'o5'"%self.mode)
 	
 	# pull out the relevant column names that compute the number of exposures for each band
-	relevantCols = myCSV.columns.values[[x.__contains__("nexp") for x in myCSV.columns.values]]
+	relevantCols = np.sort(myCSV.columns.values[[x.__contains__("nexp") for x in myCSV.columns.values]])
 	# put in a check that all bands are included in the .csv - later problem
 
 	# Create an empty array for all the tilings	
@@ -510,7 +523,7 @@ class SirenasSurvey(Survey):
     def getEventNameFromSkymap(self,ra,dec):
 	"""
 
-	Function to extract an event ID from the skymap localization
+	Function to extract an event ID from the skymap localization position
 
 	Inputs
 	------
@@ -543,7 +556,6 @@ class SirenasSurvey(Survey):
 
     """
     
-""" TODO: Revise bear footprint selection"""
     @staticmethod
     def footprintBEAR(ra,dec):
         """ Select exposures for BEAR survey """
@@ -551,35 +563,38 @@ class SirenasSurvey(Survey):
         
 	ra,dec = np.copy(ra), np.copy(dec)
 
-	sel = # bool based on above criteria
+	sel = []
+
+	for r,d in zip(ra,dec):
+	    eventName = self.getEventNameFromSkymap(r,d)
+	    result = [True] if eventName!="None" else [False]
+	    sel+=result
 
         return sel
 
-""" TODO: Revise O4 footprint selection """
     @staticmethod
     def footprintO4(ra,dec):
         """ 
-	Selecting O4 exposures plane 
-	To my knowledge, this should mirror the BEAR survey, but I am not 100% sure at this time
-
+	Selecting O4 exposures plane
+	Identical to BEAR for now 
 	"""
-        ra,dec = np.copy(ra), np.copy(dec)
-        
+	return self.footprintBEAR(ra,dec)
 
-	return sel
-
-""" TODO: Revise O5 footprint selection """
     @staticmethod
     def footprintO5(ra,dec):
         """ 
 	Selecting O5 exposures plane 
-	This should start with the BEAR footprint, and then downselect for the skymaps we care about
-	Given the computational cost of that, we should probably just have a separate skymap
 	"""
-
-	ra,dec = np.copy(ra), np.copy(dec)
+        ra,dec = np.copy(ra), np.copy(dec)
         
-	return sel
+
+	for r,d in zip(ra,dec):
+	    eventName = self.getEventNameFromSkymap(r,d)
+	    result = [True] if eventName in ("S250119cv", "S240527fv","S240915b", "GW190814","GW170818","GW200311") else [False] # These events are somewhat arbitrary, we will need to revise later
+	    sel+=result
+
+        return sel
+
 
 
 
@@ -595,11 +610,7 @@ class SirenasSurvey(Survey):
             sel |= (angsep(t['ra'],t['dec'],ra,dec) < t['radius'])
         return sel
 
-    """ 
 
-    TODO: Determine if we want to use the covered method, and if so, if we would like to modify the previously covered fields file
-
-    """
     @staticmethod
     def covered(fields, percent=85., dirname=None, basename=None):
         """
@@ -676,6 +687,13 @@ class SirenasSurvey(Survey):
                 plt.colorbar()
                 plt.savefig(outbase%(b,d),bbox_inches='tight')
                 plt.close()
+
+
+"""
+
+FIELDS
+
+"""
 
 class SirenasFieldArray(FieldArray):
     PROGRAM  = PROGRAM
@@ -759,7 +777,7 @@ SCHEDULER
 
 
 
-Current status: in overhaul
+Current status: work done, not tested
 
 """
 
@@ -835,7 +853,6 @@ class SirenasTactician(Tactician):
         return sel
 
 
-    ''' TODO: revise weights based on strategy choices'''
     @property
     def weight(self):
         """ Calculate the weight from set of programs. """
