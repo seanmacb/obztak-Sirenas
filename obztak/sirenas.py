@@ -508,7 +508,7 @@ class SirenasSurvey(Survey):
 
 	for field in fields:	# For each field
 		# Compute which event the field is in
-		eventID = getEventNameFromSkymap(field["RA"],field["DEC"]) 
+		eventID = self.getEventNameFromSkymap(field["RA"],field["DEC"]) 
 		# Call that row in the .csv
 		rowDF = myCSV[myCSV["Event ID"]==eventID]
 		# Index the row by the relevant columns from above
