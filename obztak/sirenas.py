@@ -43,6 +43,32 @@ FWHM_BEAR = 1 # Arcsec
 FWHM_O4 = 1
 FWHM_O5 = 1 
 
+dataDir = "/Users/sean/Desktop/Repos/obztak-Sirenas/obztak/data/sirenasEventFiles/"
+bearEventFile =  dataDir + "bearEvents.csv"
+o4EventFile = dataDir + "o4Events.csv"
+o5EventFile = dataDir + "o5Events.csv"
+skymapDictFile = dataDir + "skymap_mapping.fits.gz"
+
+eventNameDict = {0:"S250119cv",       
+		 1:"S240527fv",    
+		 2:"S240915b" ,   
+		 3:"GW190814" ,   
+		 4:"GW170818" ,   
+		 5:"GW200311" ,   		
+		 6:"GW200208" ,   
+                 7:"S240413p" ,   
+                 8:"GW190701" ,   
+                 9:"GW200224" ,   
+                 10:"S250205bk",  
+                 11:"S240908bs",
+                 12:"S240511i",
+                 13:"GW170814",
+                 14:"S240922df",
+                 15:"GW190503",
+		 16:"S240514x",
+                 17:"GW200202",
+                 18:"S240923ct",
+                 19:"S241110br"}
 
 class SirenasSurvey(Survey):
     """ Survey sublcass for SIRENAS. """
@@ -71,6 +97,10 @@ class SirenasSurvey(Survey):
 
     nights = nights_2023B \
              + extra_nights
+
+    eventMappingSkymap,mappingHeader = hp.read_map(skymapDictFile,verbose=False)
+    eventMappingNpix = len(eventMappingSkymap)
+    eventMappingNside = hp.npix2nside(eventMappingNpix)
 
     """ 
 
@@ -238,7 +268,8 @@ class SirenasSurvey(Survey):
         fields['PRIORITY'][done_O5 & ~done] = DONE
 
         return fields
-
+    
+    @classmethod
     def create_bear_fields(self, data, plot=False):
         """ 
 	Create the bear field observations 
@@ -246,9 +277,10 @@ class SirenasSurvey(Survey):
 	We can elect to avoid DES/SMASH/Deep field observations too, but that is disabled (for now)
 	"""
         logging.info("Creating BEAR fields...")
+
         BANDS = ['g','i','z','r','u']
-        EXPTIME = [90,90,90,90,90]
-        TILINGS = [4,4,4,4,4]
+        EXPTIME = 90
+        # TILINGS = [4,4,4,4,4] # commenting this out because the number of tilings is variable
         TEFF_MIN = TEFF_MIN_BEAR
 
         nhexes = len(np.unique(data['TILEID']))
@@ -264,13 +296,13 @@ class SirenasSurvey(Survey):
         fields = FieldArray(nfields)
         fields['PROGRAM'] = PROGRAM+'-bear'
         fields['HEX'] = np.repeat(data['TILEID'],nbands)
-        fields['TILING'] = np.repeat(data['PASS'],nbands)
+        # fields['TILING'] = np.repeat(data['PASS'],nbands)
         fields['RA'] = np.repeat(data['RA'],nbands)
         fields['DEC'] = np.repeat(data['DEC'],nbands)
 
         fields['FILTER'] = np.tile(BANDS,len(data))
         fields['EXPTIME'] = np.tile(EXPTIME,len(data))
-        fields['PRIORITY'] = fields['TILING']
+
 
         sel = self.footprintBEAR(fields['RA'],fields['DEC']) 
         sel &= (~self.footprintMilkyWay(fields['RA'],fields['DEC'])) # Avoiding milky way
@@ -281,6 +313,9 @@ class SirenasSurvey(Survey):
         # sel &= (~self.footprintDEEP(fields['RA'],fields['DEC']))
 
         fields = fields[sel]
+
+	fields['TILING'] = self.computeTilings(fields,BANDS) 
+        fields['PRIORITY'] = fields['TILING']
 
         # Covered fields
         frac, depth = self.covered(fields)
@@ -297,6 +332,7 @@ class SirenasSurvey(Survey):
 
         return fields
 
+    @classmethod
     def create_O4_fields(self, data, plot=False):
         """ 
 	Create the O4 field observations 
@@ -355,7 +391,7 @@ class SirenasSurvey(Survey):
 
         return fields
 
-
+    @classmethod
     def create_O5_fields(self, data, plot=False):
         """ 
 	Create the O5 field observations 
@@ -413,11 +449,95 @@ class SirenasSurvey(Survey):
         fields.write(outfile,clobber=True)
 
         return fields
+    
+    @classmethod
+    def computeTilings(self,fields,bands,mode='bear'):
+	"""
+
+	Function to compute the tiling numbers for fields in the Sirenas survey
+	This function takes in bands and fields within the footprint, and returns the tilings of each field
+
+	Inputs
+	------
+	fields: A field array of relevant fields, AFTER being filtered by the footprint
+	bands: The range of bands that will be observed in the mini-survey.
+	mode: Decides the data file for each tiling computation
+
+	Outputs
+	-------
+	tileArray: The tilings for all fields
+	eventIDs: An array of the event IDs for all pointings
+
+	Notes
+	-----
+	Support should exist for 0 tiles per band
+	
+	""" 
+
+	# Read in .csv with the per-event per-band exposures
+	if mode=='bear':
+	    myCSV = fileIO.read_csv(bearEventFile)
+	elif mode=='o4':
+	    myCSV = fileIO.read_csv(o4EventFile)
+	elif mode=='o5':
+	    myCSV = fileIO.read_csv(o5EventFile)
+	else:
+	    # Mode not recognized
+	    raise ValueError("Unrecognized mode: %s\n Supported modes are 'bear', 'o4', and 'o5'"%self.mode)
+	
+	# pull out the relevant column names that compute the number of exposures for each band
+	relevantCols = myCSV.columns.values[[x.__contains__("nexp") for x in myCSV.columns.values]]
+	# put in a check that all bands are included in the .csv - later problem
+
+	# Create an empty array for all the tilings	
+	tileArray = np.array([],dtype=int)
+	eventIDs = np.array([],dtype=str)
+
+	for field in fields:	# For each field
+		# Compute which event the field is in
+		eventID = getEventNameFromSkymap(field["RA"],field["DEC"]) 
+		# Call that row in the .csv
+		rowDF = myCSV[myCSV["Event ID"]==eventID]
+		# Index the row by the relevant columns from above
+		fieldtilings = rowDF[relevantCols].values[0]
+		# Append the array by the relevant columns
+		tileArray = np.append(tileArray,fieldTilings)
+		eventIDs = np.append(eventIDs,eventID)
+	
+	return tileArray,eventIDs
+
+    @classmethod
+    def getEventNameFromSkymap(self,ra,dec):
+	"""
+
+	Function to extract an event ID from the skymap localization
+
+	Inputs
+	------
+	ra: the ra of the pointing
+	dec: the dec of the pointing
+
+	Outputs
+	-------
+	eventName: the event name from the pointing
+
+	Notes
+	-----
+
+
+	"""
+	theta = 0.5 * np.pi - np.deg2rad(dec)
+	phi = np.deg2rad(ra)
+	ipix = hp.ang2pix(eventMappingNside, theta, phi)	
+
+	eventNameID = eventMappingSkymap[ipix]
+
+	eventName = eventNameDict[eventNameID]
+
+	return eventName
 
     """ 
     FOOTPRINTS 
-
-    
 
     Current status: Overhaul in progress, need skymaps to proceed further; "You can't hurry love" - Phil Collins
 
