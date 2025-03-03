@@ -590,7 +590,7 @@ class SirenasSurvey(Survey):
 
 	for r,d in zip(ra,dec):
 	    eventName = self.getEventNameFromSkymap(r,d)
-	    result = [True] if eventName in ("S250119cv", "S240527fv","S240915b", "GW190814","GW170818","GW200311") else [False] # These events are somewhat arbitrary, we will need to revise later
+	    result = [True] if eventName in ("S250119cv", "S240527fv", "GW190814","GW170814") else [False] # These events are somewhat arbitrary, we will need to revise later
 	    sel+=result
 
         return sel
