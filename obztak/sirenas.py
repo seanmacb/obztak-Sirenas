@@ -43,7 +43,7 @@ FWHM_BEAR = 1 # Arcsec
 FWHM_O4 = 1
 FWHM_O5 = 1 
 
-dataDir = "/Users/sean/Desktop/Repos/obztak-Sirenas/obztak/data/"
+dataDir = "/Users/sean/Desktop/Repos/Sirenas/obztak-Sirenas/obztak/data/"
 bearEventFile =  dataDir + "bearEvents.csv"
 o4EventFile = dataDir + "o4Events.csv"
 o5EventFile = dataDir + "o5Events.csv"
@@ -100,7 +100,7 @@ class SirenasSurvey(Survey):
     nights = nights_2023B \
              + extra_nights
 
-    eventMappingSkymap,mappingHeader = hp.read_map(skymapDictFile,verbose=False)
+    eventMappingSkymap,mappingHeader = hp.read_map(skymapDictFile,verbose=False,h=True)
     eventMappingNpix = len(eventMappingSkymap)
     eventMappingNside = hp.npix2nside(eventMappingNpix)
 
@@ -139,7 +139,11 @@ class SirenasSurvey(Survey):
         O4_fields    = self.create_O4_fields(data)
         O5_fields  = self.create_O5_fields(data)
 
-	""" Comment: Sean is commenting overlaps out, since that is not really what we want to do here. Overlaps are okay, especially for a first pass"""
+        """ 
+
+	Comment: Sean is commenting overlaps out, since that is not really what we want to do here. Overlaps are okay, especially for a first pass
+
+	"""
         # Overlap fields
         # sel  = (~np.in1d(extra_fields.unique_id,wide_fields.unique_id))
         # sel &= (~np.in1d(extra_fields.unique_id,mc_fields.unique_id))
@@ -159,13 +163,11 @@ class SirenasSurvey(Survey):
         fields['PRIORITY'][mask] = DONE
 
 
-	""" 
-	Exclusion zones
-
-	This is in the form of hex#-tile#-band
-
-	Comment: I don't think we have any exclusion zones, beside the milky way for obvious reasons. Therefore, I am commenting these out. 
-	"""
+        """ 
+        Exclusion zones
+        This is in the form of hex#-tile#-band
+        Comment: I don't think we have any exclusion zones, beside the milky way for obvious reasons. Therefore, I am commenting these out. 
+        """
         # Exclusion
 #         exclude  = [#pole
 #             '399-01-g','399-01-r','399-01-i',
@@ -317,7 +319,7 @@ class SirenasSurvey(Survey):
         fields = fields[sel]
 
 
-	fields['TILING'] = self.computeTilings(fields,BANDS,mode='bear') 
+        fields['TILING'] = self.computeTilings(fields,BANDS,mode='bear') 
         fields['PRIORITY'] = fields['TILING']
 
         # Covered fields
@@ -380,8 +382,8 @@ class SirenasSurvey(Survey):
         fields = fields[sel]
 
 	
-	fields['TILING'] = self.computeTilings(fields,BANDS,mode='o4') 
-	fields['PRIORITY'] = fields['TILING']
+        fields['TILING'] = self.computeTilings(fields,BANDS,mode='o4') 
+        fields['PRIORITY'] = fields['TILING']
 
 
         # Covered fields
@@ -444,8 +446,8 @@ class SirenasSurvey(Survey):
         fields = fields[sel]
 
 	
-	fields['TILING'] = self.computeTilings(fields,BANDS,mode='o5') 
-	fields['PRIORITY'] = fields['TILING']
+        fields['TILING'] = self.computeTilings(fields,BANDS,mode='o5') 
+        fields['PRIORITY'] = fields['TILING']
 
 
         # Covered fields
@@ -465,89 +467,89 @@ class SirenasSurvey(Survey):
     
     @classmethod
     def computeTilings(self,fields,bands,mode='bear'):
-	"""
+        """
 
-	Function to compute the tiling numbers for fields in the Sirenas survey
-	This function takes in bands and fields within the footprint, and returns the tilings of each field
-
-	Inputs
-	------
-	fields: A field array of relevant fields, AFTER being filtered by the footprint
-	bands: The range of bands that will be observed in the mini-survey.
-	mode: Decides the data file for each tiling computation
-
-	Outputs
-	-------
-	tileArray: The tilings for all fields
-	eventIDs: An array of the event IDs for all pointings
-
-	Notes
-	-----
-	Support should exist for 0 tiles per band
-	
-	""" 
-
-	# Read in .csv with the per-event per-band exposures
-	if mode=='bear':
-	    myCSV = fileIO.read_csv(bearEventFile)
-	elif mode=='o4':
-	    myCSV = fileIO.read_csv(o4EventFile)
-	elif mode=='o5':
-	    myCSV = fileIO.read_csv(o5EventFile)
-	else:
-	    # Mode not recognized
-	    raise ValueError("Unrecognized mode: %s\n Supported modes are 'bear', 'o4', and 'o5'"%self.mode)
-	
-	# pull out the relevant column names that compute the number of exposures for each band
-	relevantCols = np.sort(myCSV.columns.values[[x.__contains__("nexp") for x in myCSV.columns.values]])
-	# put in a check that all bands are included in the .csv - later problem
-
-	# Create an empty array for all the tilings	
-	tileArray = np.array([],dtype=int)
-	eventIDs = np.array([],dtype=str)
-
-	for field in fields:	# For each field
-		# Compute which event the field is in
-		eventID = self.getEventNameFromSkymap(field["RA"],field["DEC"]) 
-		# Call that row in the .csv
-		rowDF = myCSV[myCSV["Event ID"]==eventID]
-		# Index the row by the relevant columns from above
-		fieldtilings = rowDF[relevantCols].values[0]
-		# Append the array by the relevant columns
-		tileArray = np.append(tileArray,fieldTilings)
-		eventIDs = np.append(eventIDs,eventID)
-	
-	return tileArray,eventIDs
+        Function to compute the tiling numbers for fields in the Sirenas survey
+        This function takes in bands and fields within the footprint, and returns the tilings of each field
+        
+        Inputs
+        ------
+        fields: A field array of relevant fields, AFTER being filtered by the footprint
+        bands: The range of bands that will be observed in the mini-survey.
+        mode: Decides the data file for each tiling computation
+        
+        Outputs
+        -------
+        tileArray: The tilings for all fields
+        eventIDs: An array of the event IDs for all pointings
+        
+        Notes
+        -----
+        Support should exist for 0 tiles per band
+        
+        """ 
+        
+        # Read in .csv with the per-event per-band exposures
+        if mode=='bear':
+            myCSV = fileIO.read_csv(bearEventFile)
+        elif mode=='o4':
+            myCSV = fileIO.read_csv(o4EventFile)
+        elif mode=='o5':
+            myCSV = fileIO.read_csv(o5EventFile)
+        else:
+            # Mode not recognized
+            raise ValueError("Unrecognized mode: %s\n Supported modes are 'bear', 'o4', and 'o5'"%self.mode)
+        
+        # pull out the relevant column names that compute the number of exposures for each band
+        relevantCols = np.sort(myCSV.columns.values[[x.__contains__("nexp") for x in myCSV.columns.values]])
+        # put in a check that all bands are included in the .csv - later problem
+        
+        # Create an empty array for all the tilings	
+        tileArray = np.array([],dtype=int)
+        eventIDs = np.array([],dtype=str)
+        
+        for field in fields:	# For each field
+        	# Compute which event the field is in
+        	eventID = self.getEventNameFromSkymap(field["RA"],field["DEC"]) 
+        	# Call that row in the .csv
+        	rowDF = myCSV[myCSV["Event ID"]==eventID]
+        	# Index the row by the relevant columns from above
+        	fieldtilings = rowDF[relevantCols].values[0]
+        	# Append the array by the relevant columns
+        	tileArray = np.append(tileArray,fieldTilings)
+        	eventIDs = np.append(eventIDs,eventID)
+        
+        return tileArray,eventIDs
 
     @classmethod
     def getEventNameFromSkymap(self,ra,dec):
-	"""
-
-	Function to extract an event ID from the skymap localization position
-
-	Inputs
-	------
-	ra: the ra of the pointing
-	dec: the dec of the pointing
-
-	Outputs
-	-------
-	eventName: the event name from the pointing
-
-	Notes
-	-----
-
-
-	"""
-	theta = 0.5 * np.pi - np.deg2rad(dec)
-	phi = np.deg2rad(ra)
-	ipix = hp.ang2pix(eventMappingNside, theta, phi)	
-
-	eventNameID = eventMappingSkymap[ipix]
-
-	eventName = eventNameDict[eventNameID]
-
-	return eventName
+         """
+         
+         Function to extract an event ID from the skymap localization position
+         
+         Inputs
+         ------
+         ra: the ra of the pointing
+         dec: the dec of the pointing
+         
+         Outputs
+         -------
+         eventName: the event name from the pointing
+         
+         Notes
+         -----
+         
+         
+         """
+         theta = 0.5 * np.pi - np.deg2rad(dec)
+         phi = np.deg2rad(ra)
+         ipix = hp.ang2pix(eventMappingNside, theta, phi)	
+         
+         eventNameID = eventMappingSkymap[ipix]
+         
+         eventName = eventNameDict[eventNameID]
+         
+         return eventName
 
     """ 
     FOOTPRINTS 
@@ -558,57 +560,57 @@ class SirenasSurvey(Survey):
     
     @staticmethod
     def footprintBEAR(ra,dec):
-        """ Select exposures for BEAR survey """
- 	""" In general, if we are in the 90% contour, return true. Else, return false"""
-        
-	ra,dec = np.copy(ra), np.copy(dec)
+         """ Select exposures for BEAR survey """
+         """ In general, if we are in the 90% contour, return true. Else, return false"""
+         
+         ra,dec = np.copy(ra), np.copy(dec)
 
-	sel = []
+         sel = []
 
-	for r,d in zip(ra,dec):
-	    eventName = self.getEventNameFromSkymap(r,d)
-	    result = [True] if eventName!="None" else [False]
-	    sel+=result
+         for r,d in zip(ra,dec):
+             eventName = self.getEventNameFromSkymap(r,d)
+             result = [True] if eventName!="None" else [False]
+             sel+=result
 
-        return sel
+         return sel
 
     @staticmethod
     def footprintO4(ra,dec):
-        """ 
-	Selecting O4 exposures plane
-	Identical to BEAR for now 
-	"""
-	return self.footprintBEAR(ra,dec)
+         """ 
+	 Selecting O4 exposures plane
+	 Identical to BEAR for now 
+	 """
+         return self.footprintBEAR(ra,dec)
 
     @staticmethod
     def footprintO5(ra,dec):
-        """ 
-	Selecting O5 exposures plane 
-	"""
-        ra,dec = np.copy(ra), np.copy(dec)
-        
+         """ 
+	 Selecting O5 exposures plane 
+	 """
+         ra,dec = np.copy(ra), np.copy(dec)
+         
 
-	for r,d in zip(ra,dec):
-	    eventName = self.getEventNameFromSkymap(r,d)
-	    result = [True] if eventName in ("S250119cv", "S240527fv", "GW190814","GW170814") else [False] # These events are somewhat arbitrary, we will need to revise later
-	    sel+=result
-
-        return sel
+         for r,d in zip(ra,dec):
+             eventName = self.getEventNameFromSkymap(r,d)
+             result = [True] if eventName in ("S250119cv", "S240527fv", "GW190814","GW170814") else [False] # These events are somewhat arbitrary, we will need to revise later
+             sel+=result
+         
+         return sel
 
 
 
 
     @staticmethod
     def bright_stars(ra,dec):
-        """ Load bright star list """
-        ra,dec = np.copy(ra), np.copy(dec)
-        sel = np.zeros(len(ra),dtype=bool)
-        #filename = fileio.get_datafile('famous-bright-stars.csv')
-        filename = fileio.get_datafile('bsc5p-bright-stars.csv')
-        targets = fileio.read_csv(filename).to_records()
-        for t in targets:
-            sel |= (angsep(t['ra'],t['dec'],ra,dec) < t['radius'])
-        return sel
+         """ Load bright star list """
+         ra,dec = np.copy(ra), np.copy(dec)
+         sel = np.zeros(len(ra),dtype=bool)
+         #filename = fileio.get_datafile('famous-bright-stars.csv')
+         filename = fileio.get_datafile('bsc5p-bright-stars.csv')
+         targets = fileio.read_csv(filename).to_records()
+         for t in targets:
+             sel |= (angsep(t['ra'],t['dec'],ra,dec) < t['radius'])
+         return sel
 
 
     @staticmethod
@@ -885,195 +887,195 @@ class SirenasTactician(Tactician):
         raise ValueError("No viable fields")
 
 
-     def weight_bear(self):
+    def weight_bear(self):
         """ Calculate the field weight for the BEAR survey.
-
+     
         Parameters
         ----------
         None
-
+     
         Returns
         -------
         weight : array of weights per field
         """
         airmass = self.airmass
         moon_angle = self.moon_angle
-
+     
         sel = self.viable_fields
         sel &= (self.fields['PROGRAM'] == 'sirenas-bear')
-
+     
         weight = np.zeros(len(sel))
-
+     
         # Moon angle constraints
         moon_limit = 30. # + (self.moon.phase/5.)
         sel &= (moon_angle > moon_limit)
-
+     
         # Sky brightness selection
         sel &= self.skybright_select()
         #sel &= self.fields['FILTER'] == 'z'
-
+     
         # Airmass cut
         airmass_min, airmass_max = self.CONDITIONS['bear']
         sel &= ((airmass > airmass_min) & (airmass < airmass_max))
-
+     
         ## Try hard to do high priority fields
         weight += 1e2 * self.fields['PRIORITY']
         ## Weight different fields
-
-	"""
-	I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
-	"""
-
+     
+        """
+        I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
+        """
+     
         # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
         # sel[sexB] = False
-
+     
         # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
         # weight[ic5152] += 0.0
-
+     
         # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
         # weight[ngc300] += 1e3
         # #sel[ngc300] = False
-
+     
         # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
         # sel[ngc55] = False
-
+     
         # # Set infinite weight to all disallowed fields
         weight[~sel] = np.inf
-
+     
         return weight
 
     def weight_o4(self):
-        """ Calculate the field weight for the o4 survey.
+         """ Calculate the field weight for the o4 survey.
 
-        Parameters
-        ----------
-        None
+         Parameters
+         ----------
+         None
 
-        Returns
-        -------
-        weight : array of weights per field
-        """
-        airmass = self.airmass
-        moon_angle = self.moon_angle
+         Returns
+         -------
+         weight : array of weights per field
+         """
+         airmass = self.airmass
+         moon_angle = self.moon_angle
 
-        sel = self.viable_fields
-        sel &= (self.fields['PROGRAM'] == 'sirenas-o4')
+         sel = self.viable_fields
+         sel &= (self.fields['PROGRAM'] == 'sirenas-o4')
 
-        weight = np.zeros(len(sel))
+         weight = np.zeros(len(sel))
 
-        # Moon angle constraints
-        moon_limit = 30. # + (self.moon.phase/5.)
-        sel &= (moon_angle > moon_limit)
+         # Moon angle constraints
+         moon_limit = 30. # + (self.moon.phase/5.)
+         sel &= (moon_angle > moon_limit)
 
-        # Sky brightness selection
-        sel &= self.skybright_select()
-        #sel &= self.fields['FILTER'] == 'z'
+         # Sky brightness selection
+         sel &= self.skybright_select()
+         #sel &= self.fields['FILTER'] == 'z'
 
-        # Airmass cut
-        airmass_min, airmass_max = self.CONDITIONS['o4']
-        sel &= ((airmass > airmass_min) & (airmass < airmass_max))
+         # Airmass cut
+         airmass_min, airmass_max = self.CONDITIONS['o4']
+         sel &= ((airmass > airmass_min) & (airmass < airmass_max))
 
-        ## Try hard to do high priority fields
-        weight += 1e2 * self.fields['PRIORITY']
-        ## Weight different fields
+         ## Try hard to do high priority fields
+         weight += 1e2 * self.fields['PRIORITY']
+         ## Weight different fields
 
-	"""
-	I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
-	"""
+         """
+         I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
+         """
 
-        # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
-        # sel[sexB] = False
+         # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
+         # sel[sexB] = False
 
-        # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
-        # weight[ic5152] += 0.0
+         # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
+         # weight[ic5152] += 0.0
 
-        # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
-        # weight[ngc300] += 1e3
-        # #sel[ngc300] = False
+         # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
+         # weight[ngc300] += 1e3
+         # #sel[ngc300] = False
 
-        # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
-        # sel[ngc55] = False
+         # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
+         # sel[ngc55] = False
 
-        # # Set infinite weight to all disallowed fields
-        weight[~sel] = np.inf
+         # # Set infinite weight to all disallowed fields
+         weight[~sel] = np.inf
 
-        return weight
+         return weight
 
     def weight_o5(self):
-        """ Calculate the field weight for the o5 survey.
+         """ Calculate the field weight for the o5 survey.
 
-        Parameters
-        ----------
-        None
+         Parameters
+         ----------
+         None
 
-        Returns
-        -------
-        weight : array of weights per field
-        """
-        airmass = self.airmass
-        moon_angle = self.moon_angle
+         Returns
+         -------
+         weight : array of weights per field
+         """
+         airmass = self.airmass
+         moon_angle = self.moon_angle
 
-        sel = self.viable_fields
-        sel &= (self.fields['PROGRAM'] == 'sirenas-o5')
+         sel = self.viable_fields
+         sel &= (self.fields['PROGRAM'] == 'sirenas-o5')
 
-        weight = np.zeros(len(sel))
+         weight = np.zeros(len(sel))
 
-        # Moon angle constraints
-        moon_limit = 30. # + (self.moon.phase/5.)
-        sel &= (moon_angle > moon_limit)
+         # Moon angle constraints
+         moon_limit = 30. # + (self.moon.phase/5.)
+         sel &= (moon_angle > moon_limit)
 
-        # Sky brightness selection
-        sel &= self.skybright_select()
-        #sel &= self.fields['FILTER'] == 'z'
+         # Sky brightness selection
+         sel &= self.skybright_select()
+         #sel &= self.fields['FILTER'] == 'z'
 
-        # Airmass cut
-        airmass_min, airmass_max = self.CONDITIONS['o5']
-        sel &= ((airmass > airmass_min) & (airmass < airmass_max))
+         # Airmass cut
+         airmass_min, airmass_max = self.CONDITIONS['o5']
+         sel &= ((airmass > airmass_min) & (airmass < airmass_max))
 
-        ## Try hard to do high priority fields
-        weight += 1e2 * self.fields['PRIORITY']
-        ## Weight different fields
+         ## Try hard to do high priority fields
+         weight += 1e2 * self.fields['PRIORITY']
+         ## Weight different fields
 
-	"""
-	I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
-	"""
+         """
+         I am removing the weights on certain fields here, since we just want to hit uniform magnitude over the contours
+         """
 
-        # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
-        # sel[sexB] = False
+         # sexB = (self.fields['HEX'] >= 100000) & (self.fields['HEX'] < 100100)
+         # sel[sexB] = False
 
-        # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
-        # weight[ic5152] += 0.0
+         # ic5152 = (self.fields['HEX'] >= 100100) & (self.fields['HEX'] < 100200)
+         # weight[ic5152] += 0.0
 
-        # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
-        # weight[ngc300] += 1e3
-        # #sel[ngc300] = False
+         # ngc300 = (self.fields['HEX'] >= 100200) & (self.fields['HEX'] < 100300)
+         # weight[ngc300] += 1e3
+         # #sel[ngc300] = False
 
-        # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
-        # sel[ngc55] = False
+         # ngc55 = (self.fields['HEX'] >= 100300) & (self.fields['HEX'] < 100400)
+         # sel[ngc55] = False
 
-        # # Set infinite weight to all disallowed fields
-        weight[~sel] = np.inf
+         # # Set infinite weight to all disallowed fields
+         weight[~sel] = np.inf
 
-        return weight
+         return weight
 
 
 
     def select_index(self):
-        weight = self.weight
-        index = np.array([np.argmin(weight)],dtype=int)
-        if np.any(~np.isfinite(weight[index])):
-            plot = (logging.getLogger().getEffectiveLevel()==logging.DEBUG)
-            msg = "Infinite weight selected..."
-            logging.warn(msg)
-            logging.info(">>> To plot fields enter 'plot=True'")
-            logging.info(">>> Enter 'c' to continue")
-            import pdb; pdb.set_trace()
-            if plot:
-                import obztak.utils.ortho, pylab as plt
-                airmass = self.CONDITIONS[self.mode][1]
-                bmap = obztak.utils.ortho.plotFields(self.completed_fields[-1],self.fields,self.completed_fields,options_basemap=dict(airmass=airmass))
-                logging.info(">>> Enter 'c' to continue")
-                pdb.set_trace()
-            raise ValueError(msg)
+         weight = self.weight
+         index = np.array([np.argmin(weight)],dtype=int)
+         if np.any(~np.isfinite(weight[index])):
+             plot = (logging.getLogger().getEffectiveLevel()==logging.DEBUG)
+             msg = "Infinite weight selected..."
+             logging.warn(msg)
+             logging.info(">>> To plot fields enter 'plot=True'")
+             logging.info(">>> Enter 'c' to continue")
+             import pdb; pdb.set_trace()
+             if plot:
+                 import obztak.utils.ortho, pylab as plt
+                 airmass = self.CONDITIONS[self.mode][1]
+                 bmap = obztak.utils.ortho.plotFields(self.completed_fields[-1],self.fields,self.completed_fields,options_basemap=dict(airmass=airmass))
+                 logging.info(">>> Enter 'c' to continue")
+                 pdb.set_trace()
+             raise ValueError(msg)
 
-        return index
+         return index
