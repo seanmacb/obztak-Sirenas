@@ -12,7 +12,7 @@ from obztak import get_survey
 from obztak.utils.date import isstring
 
 MODULES = ['obztak.maglites','obztak.bliss','obztak.maglites2','obztak.delve',
-           'obztak.magic']
+           'obztak.magic','obztak.sirenas']
 
 SURVEYS = odict([
     (None,'Survey'),

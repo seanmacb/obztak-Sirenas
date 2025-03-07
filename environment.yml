@@ -14,5 +14,5 @@ dependencies:
   - healpy
   - psycopg2 
   - nose
-#variables:
-#  OBZTAK_SURVEY: obztak
+variables:
+  OBZTAK_SURVEY: sirenas
