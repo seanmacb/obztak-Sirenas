@@ -43,11 +43,11 @@ FWHM_BEAR = 1 # Arcsec
 FWHM_O4 = 1
 FWHM_O5 = 1 
 
-dataDir = "/Users/sean/Desktop/Repos/obztak-Sirenas/obztak/data/sirenasEventFiles/"
+dataDir = "/Users/sean/Desktop/Repos/obztak-Sirenas/obztak/data/"
 bearEventFile =  dataDir + "bearEvents.csv"
 o4EventFile = dataDir + "o4Events.csv"
 o5EventFile = dataDir + "o5Events.csv"
-skymapDictFile = dataDir + "skymap_mapping.fits.gz"
+skymapDictFile = dataDir + "sirenas_obs_mapping.fits.gz"
 
 eventNameDict = { 0:"None",
 		  1:"S250119cv",       
