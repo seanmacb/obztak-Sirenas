@@ -137,7 +137,11 @@ class SirenasSurvey(Survey):
 
         bear_fields  = self.create_bear_fields(data)
         O4_fields    = self.create_O4_fields(data)
-        O5_fields  = self.create_O5_fields(data)
+        
+        """
+        Sean is commenting out the O5 fields, since we don't have a time projection for them (yet)
+        """
+        # O5_fields  = self.create_O5_fields(data)
 
         """ 
 
@@ -152,7 +156,7 @@ class SirenasSurvey(Survey):
         # Remove overlap fields
         # extra_fields = extra_fields[sel]
 
-        fields = bear_fields + O4_fields + O5_fields 
+        fields = bear_fields + O4_fields # + O5_fields 
 
         logging.info("Masking bright stars...")
         mask = self.bright_stars(fields['RA'],fields['DEC'])
@@ -292,7 +296,7 @@ class SirenasSurvey(Survey):
 
         nfields = len(data)*nbands
 
-        logging.info("  Number of hexes: %d"%nhexes)
+        logging.info("  Number of hexes before footprint selection: %d"%nhexes)
         logging.info("  Filters: %s"%BANDS)
         logging.info("  Exposure time: %s"%EXPTIME)
         # logging.info("  Tilings: %s"%TILINGS)
@@ -320,21 +324,9 @@ class SirenasSurvey(Survey):
 
         # DEBUGGING START
         tiling,eventNames = self.computeTilings(fields,BANDS,mode='bear') 
-        #print("DEBUG: arr: {} \n shape: {}".format(tiling[0][0:13],np.shape(tiling[0])))
-        #print("Event name: arr {} \n shape: {}".format(tiling[1][0:13],np.shape(tiling[1])))
-        
-#         test = np.reshape(tiling,(-1,len(BANDS)))
-# 
-#         print(fields)
-# 
-#         print(test[0]==test[1]) 
-#  
-#         print(np.unique(fields["TILING"]))
-#         print(np.shape(fields["TILING"]))
-
         fields['TILING'] = tiling
         fields['PRIORITY'] = fields['TILING']
-
+        logging.info("  Number of hexes after footprint selection: %d"%len(fields))
         """
         
         I'm commenting this out, so we can make some progress. Implementing the coverage maps is a necessity though...
@@ -372,7 +364,7 @@ class SirenasSurvey(Survey):
 
         nfields = len(data)*nbands
 
-        logging.info("  Number of hexes: %d"%nhexes)
+        logging.info("  Number of hexes before footprint selection: %d"%nhexes)
         logging.info("  Filters: %s"%BANDS)
         logging.info("  Exposure time: %s"%EXPTIME)
         logging.info("  Tilings: %s"%TILINGS)
@@ -398,15 +390,17 @@ class SirenasSurvey(Survey):
 
         fields = fields[sel]
 
+        tiling,eventNames = self.computeTilings(fields,BANDS,mode='o4')
 	
-        fields['TILING'] = self.computeTilings(fields,BANDS,mode='o4') 
+        fields['TILING'] = tiling
         fields['PRIORITY'] = fields['TILING']
 
+        logging.info("  Number of hexes after footprint selection: %d"%len(fields))
 
         # Covered fields
-        frac, depth = self.covered(fields)
-        teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
-        fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
+        # frac, depth = self.covered(fields)
+        # teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
+        # fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
 
         if plot: self.plot_depth(fields,depth,'sirenas-O4-%s-gt%i.png')
 
@@ -436,10 +430,10 @@ class SirenasSurvey(Survey):
 
         nfields = len(data)*nbands
 
-        logging.info("  Number of hexes: %d"%nhexes)
+        logging.info("  Number of hexes before footprint selection: %d"%nhexes)
         logging.info("  Filters: %s"%BANDS)
         logging.info("  Exposure time: %s"%EXPTIME)
-        logging.info("  Tilings: %s"%TILINGS)
+#        logging.info("  Tilings: %s"%TILINGS)
 
         fields = FieldArray(nfields)
         fields['PROGRAM'] = PROGRAM+'-O5'
@@ -462,15 +456,16 @@ class SirenasSurvey(Survey):
 
         fields = fields[sel]
 
+        tiling,eventName =  self.computeTilings(fields,BANDS,mode='o5') 
 	
-        fields['TILING'] = self.computeTilings(fields,BANDS,mode='o5') 
+        fields['TILING'] = tiling
         fields['PRIORITY'] = fields['TILING']
 
-
+        logging.info("  Number of hexes after footprint selection: %d"%len(fields))
         # Covered fields
-        frac, depth = self.covered(fields)
-        teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
-        fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
+        # frac, depth = self.covered(fields)
+        # teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
+        # fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
 
         if plot: self.plot_depth(fields,depth,'sirenas-O5-%s-gt%i.png')
 
@@ -614,6 +609,7 @@ class SirenasSurvey(Survey):
 	 """
          ra,dec = np.copy(ra), np.copy(dec)
          
+         sel = []
 
          for r,d in zip(ra,dec):
              eventName = self.getEventNameFromSkymap(r,d)
@@ -630,8 +626,8 @@ class SirenasSurvey(Survey):
          """ Load bright star list """
          ra,dec = np.copy(ra), np.copy(dec)
          sel = np.zeros(len(ra),dtype=bool)
-         #filename = fileio.get_datafile('famous-bright-stars.csv')
-         filename = fileio.get_datafile('bsc5p-bright-stars.csv')
+         filename = fileio.get_datafile('famous-bright-stars.csv')
+         #filename = fileio.get_datafile('bsc5p-bright-stars.csv')
          targets = fileio.read_csv(filename).to_records()
          for t in targets:
              sel |= (angsep(t['ra'],t['dec'],ra,dec) < t['radius'])
