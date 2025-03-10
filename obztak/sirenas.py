@@ -131,7 +131,7 @@ class SirenasSurvey(Survey):
         """
 
         if infile is None:
-            infile = fileio.get_datafile('decam-tiles-bliss-v1.fits.gz')
+            infile = fileio.get_datafile('decam-tiles-bliss-v0.fits.gz')
         logging.info("Reading tiles from: %s"%os.path.basename(infile))
         data = fitsio.read(infile)
 
@@ -295,11 +295,11 @@ class SirenasSurvey(Survey):
         logging.info("  Number of hexes: %d"%nhexes)
         logging.info("  Filters: %s"%BANDS)
         logging.info("  Exposure time: %s"%EXPTIME)
-        logging.info("  Tilings: %s"%TILINGS)
+        # logging.info("  Tilings: %s"%TILINGS)
 
         fields = FieldArray(nfields)
         fields['PROGRAM'] = PROGRAM+'-bear'
-        fields['HEX'] = np.repeat(data['TILEID'],nbands)
+        fields['HEX'] = np.repeat(data['TILEID'],nbands) # Modifying this and the below lines from nbands -> nfields
         # fields['TILING'] = np.repeat(data['PASS'],nbands)
         fields['RA'] = np.repeat(data['RA'],nbands)
         fields['DEC'] = np.repeat(data['DEC'],nbands)
@@ -318,14 +318,31 @@ class SirenasSurvey(Survey):
 
         fields = fields[sel]
 
+        # DEBUGGING START
+        tiling,eventNames = self.computeTilings(fields,BANDS,mode='bear') 
+        #print("DEBUG: arr: {} \n shape: {}".format(tiling[0][0:13],np.shape(tiling[0])))
+        #print("Event name: arr {} \n shape: {}".format(tiling[1][0:13],np.shape(tiling[1])))
+        
+#         test = np.reshape(tiling,(-1,len(BANDS)))
+# 
+#         print(fields)
+# 
+#         print(test[0]==test[1]) 
+#  
+#         print(np.unique(fields["TILING"]))
+#         print(np.shape(fields["TILING"]))
 
-        fields['TILING'] = self.computeTilings(fields,BANDS,mode='bear') 
+        fields['TILING'] = tiling
         fields['PRIORITY'] = fields['TILING']
 
+        """
+        
+        I'm commenting this out, so we can make some progress. Implementing the coverage maps is a necessity though...
+        """
         # Covered fields
-        frac, depth = self.covered(fields)
-        teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
-        fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
+        #frac, depth = self.covered(fields)
+        #teffmin = pd.DataFrame(fields).merge(TEFF_MIN,on='FILTER',how='left').to_records()['TEFF']
+        #fields['PRIORITY'][depth > teffmin*fields['TILING']*fields['EXPTIME']] = DONE
 
         if plot: self.plot_depth(fields,depth,'sirenas-bear-%s-gt%i.png')
 
@@ -491,11 +508,11 @@ class SirenasSurvey(Survey):
         
         # Read in .csv with the per-event per-band exposures
         if mode=='bear':
-            myCSV = fileIO.read_csv(bearEventFile)
+            myCSV = fileio.read_csv(bearEventFile)
         elif mode=='o4':
-            myCSV = fileIO.read_csv(o4EventFile)
+            myCSV = fileio.read_csv(o4EventFile)
         elif mode=='o5':
-            myCSV = fileIO.read_csv(o5EventFile)
+            myCSV = fileio.read_csv(o5EventFile)
         else:
             # Mode not recognized
             raise ValueError("Unrecognized mode: %s\n Supported modes are 'bear', 'o4', and 'o5'"%self.mode)
@@ -509,16 +526,24 @@ class SirenasSurvey(Survey):
         eventIDs = np.array([],dtype=str)
         
         for field in fields:	# For each field
-        	# Compute which event the field is in
-        	eventID = self.getEventNameFromSkymap(field["RA"],field["DEC"]) 
-        	# Call that row in the .csv
-        	rowDF = myCSV[myCSV["Event ID"]==eventID]
-        	# Index the row by the relevant columns from above
-        	fieldtilings = rowDF[relevantCols].values[0]
+                # Compute which event the field is in
+                eventID = self.getEventNameFromSkymap(field["RA"],field["DEC"]) 
+                # Call that row in the .csv
+                rowDF = myCSV[myCSV["Event ID"]==eventID]
+                # Index the field filter
+                fieldFilt = field["FILTER"]
+                # Index the individual column that we care about here
+                indivCol = relevantCols[[x.__contains__(fieldFilt) for x in relevantCols]]
+                # Index the row by the relevant columns from above
+                fieldtilings = rowDF[indivCol].values[0]
         	# Append the array by the relevant columns
-        	tileArray = np.append(tileArray,fieldTilings)
-        	eventIDs = np.append(eventIDs,eventID)
+                tileArray = np.append(tileArray,fieldtilings)
+                eventIDs = np.append(eventIDs,eventID)
         
+        # print("Debugging in here:")
+        # print(fieldtilings)
+        # print(eventID)
+
         return tileArray,eventIDs
 
     @classmethod
@@ -543,9 +568,9 @@ class SirenasSurvey(Survey):
          """
          theta = 0.5 * np.pi - np.deg2rad(dec)
          phi = np.deg2rad(ra)
-         ipix = hp.ang2pix(eventMappingNside, theta, phi)	
+         ipix = hp.ang2pix(self.eventMappingNside, theta, phi)	
          
-         eventNameID = eventMappingSkymap[ipix]
+         eventNameID = self.eventMappingSkymap[ipix]
          
          eventName = eventNameDict[eventNameID]
          
@@ -558,8 +583,8 @@ class SirenasSurvey(Survey):
 
     """
     
-    @staticmethod
-    def footprintBEAR(ra,dec):
+    @classmethod
+    def footprintBEAR(self,ra,dec):
          """ Select exposures for BEAR survey """
          """ In general, if we are in the 90% contour, return true. Else, return false"""
          
@@ -574,16 +599,16 @@ class SirenasSurvey(Survey):
 
          return sel
 
-    @staticmethod
-    def footprintO4(ra,dec):
+    @classmethod
+    def footprintO4(self,ra,dec):
          """ 
 	 Selecting O4 exposures plane
 	 Identical to BEAR for now 
 	 """
          return self.footprintBEAR(ra,dec)
 
-    @staticmethod
-    def footprintO5(ra,dec):
+    @classmethod
+    def footprintO5(self,ra,dec):
          """ 
 	 Selecting O5 exposures plane 
 	 """
