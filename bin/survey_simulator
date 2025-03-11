@@ -16,18 +16,20 @@ def main():
                         help='Plot only at the end of the night')
     parser.add_argument('--nonstop',action='store_true',
                         help='Run entire survey without stops')
-    #parser.add_argument('--utc-start',action=DatetimeAction,
-    #                    help="start time for observation.")
-    #parser.add_argument('--utc-end',action=DatetimeAction,
-    #                    help="end time for observation.")
+    # parser.add_argument('--utc-start',action=DatetimeAction,
+    #                     help="start time for observation.")
+    # parser.add_argument('--utc-end',action=DatetimeAction,
+    #                     help="end time for observation.")
 
     args = parser.parse_args()
+
     scheduler = Scheduler(args.fields,args.windows,args.complete)
 
+    
     if args.utc_start and args.utc_end:
         windows = [[args.utc_start,args.utc_end]]
     else:
-        windows = scheduler.observation_windows
+        windows = scheduler.windows
 
     scheduled = FieldArray()
     for i,(start,end) in enumerate(windows):
