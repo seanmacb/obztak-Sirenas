@@ -30,3 +30,6 @@ dist/
 *.out
 *.blg
 *.bbl
+
+### Sean's hidden files
+hidden/
