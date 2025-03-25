@@ -79,25 +79,52 @@ class SirenasSurvey(Survey):
 
 # These are some test nights
 
-    nights_2023B = [
-        ['2023/08/23','first'], #DDT
-        ['2023/09/01','full'],
-        ['2023/10/24','full'],
-        ['2023/11/01','second'],
-        ['2023/11/02','second'],
-        ['2023/11/03','second'],
-        ['2023/12/23','full'],
-        ['2023/12/29','full'],
-        ['2024/01/01','second'],
-        ['2024/01/19','first'],
-        ['2024/01/20','first'],
-        ['2024/01/28','full']
+#     nights_2023B = [
+#         ['2023/08/23','first'], #DDT
+#         ['2023/09/01','full'],
+#         ['2023/10/24','full'],
+#         ['2023/11/01','second'],
+#         ['2023/11/02','second'],
+#         ['2023/11/03','second'],
+#         ['2023/12/23','full'],
+#         ['2023/12/29','full'],
+#         ['2024/01/01','second'],
+#         ['2024/01/19','first'],
+#         ['2024/01/20','first'],
+#         ['2024/01/28','full']
+# 
+#     ]
 
-    ]
+test_nights = [
+               ["2025/10/12" , "full"],
+               ["2025/10/19" , "first"],
+               ["2026/01/27" , "second"],
+               ["2025/08/21" , "second"],
+               ["2025/10/09" , "second"],
+               ["2025/12/03" , "full"],
+               ["2025/09/28" , "full"],
+               ["2025/10/08" , "second"],
+               ["2025/11/14" , "second"],
+               ["2025/09/04" , "first"],
+               ["2025/08/15" , "first"],
+               ["2025/12/23" , "second"],
+               ["2025/08/18" , "second"],
+               ["2025/10/03" , "full"],
+               ["2025/08/03" , "full"],
+               ["2025/08/25" , "full"],
+               ["2025/11/24" , "full"],
+               ["2025/11/07" , "first"],
+               ["2026/01/04" , "full"],
+               ["2025/10/26" , "full"],
+               ["2025/12/18" , "full"],
+               ["2025/10/25" , "full"],
+               ["2026/01/24" , "full"],
+               ["2025/09/24" , "full"],
+]
 
     extra_nights = []
 
-    nights = nights_2023B \
+    nights = test_nights \
              + extra_nights
 
     eventMappingSkymap,mappingHeader = hp.read_map(skymapDictFile,verbose=False,h=True)
